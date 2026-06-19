@@ -2,6 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "framework": "nextjs",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build",
   "env": {
     "NEXT_PUBLIC_GRAPHQL_URL": "https://enatega-singlevendor.up.railway.app/graphql",
     "NEXT_PUBLIC_WS_GRAPHQL_URL": "wss://enatega-singlevendor.up.railway.app/graphql"

@@ -4,6 +4,8 @@ node_modules/
 .env
 .env.*
 !.env.example
+platform/.next/
+platform/node_modules/
 google-service-account.json
 *.pem
 .vercel
