@@ -36,6 +36,11 @@ import {
 } from "../../apollo/server";
 import Loader from "react-loader-spinner";
 import { formatDualCurrency } from "../../utils/formatPrice";
+import {
+  translateOrderStatus,
+  translatePaymentStatus,
+  translatePaymentMethod,
+} from "../../utils/orderLabels";
 
 // constants
 const UPDATE_STATUS = gql`
@@ -92,13 +97,13 @@ function Order(props) {
     updatePaymentStatus,
   }) => {
     if (updateStatus) {
-      successSetter("Status Updated");
+      successSetter(t("Status Updated"));
     } else if (assignRider) {
-      successSetter("Rider assinged");
+      successSetter(t("Rider assinged"));
     } else if (updateOrderStatus) {
-      successSetter("Order status updated");
+      successSetter(t("Order status updated"));
     } else if (updatePaymentStatus) {
-      successSetter("Payment status updated");
+      successSetter(t("Payment status updated"));
     }
   };
   const onError = (error) => {
@@ -349,7 +354,7 @@ function Order(props) {
                                       }
                                     }}
                                   >
-                                    Assign
+                                    {t("Assign")}
                                   </Button>
                                 );
                               }}
@@ -398,8 +403,10 @@ function Order(props) {
                             onChange={onChangeStatus}
                           >
                             <option selected></option>
-                            <option value="PICKED">PICKED</option>
-                            <option value="DELIVERED">DELIVERED</option>
+                            <option value="PICKED">{t("status PICKED")}</option>
+                            <option value="DELIVERED">
+                              {t("status DELIVERED")}
+                            </option>
                           </Input>
 
                           <InputGroupAddon addonType="append">
@@ -443,7 +450,7 @@ function Order(props) {
                                       }
                                     }}
                                   >
-                                    Assign
+                                    {t("Assign")}
                                   </Button>
                                 );
                               }}
@@ -465,7 +472,7 @@ function Order(props) {
                           id="rider-name"
                           type="text"
                           readOnly
-                          value={order.order_status || ""}
+                          value={translateOrderStatus(order.order_status, t)}
                         />
                       </FormGroup>
                     </Col>
@@ -500,7 +507,7 @@ function Order(props) {
                                   <option disabled></option>
                                   {data.getPaymentStatuses.map((status) => (
                                     <option key={status} value={status}>
-                                      {status}
+                                      {translatePaymentStatus(status, t)}
                                     </option>
                                   ))}
                                 </Input>
@@ -549,7 +556,7 @@ function Order(props) {
                                       }
                                     }}
                                   >
-                                    Assign
+                                    {t("Assign")}
                                   </Button>
                                 );
                               }}
@@ -571,7 +578,10 @@ function Order(props) {
                           id="rider-name"
                           type="text"
                           readOnly
-                          value={order.payment_status || ""}
+                          value={translatePaymentStatus(
+                            order.payment_status,
+                            t
+                          )}
                         />
                       </FormGroup>
                     </Col>
@@ -839,7 +849,9 @@ function Order(props) {
                                     }}
                                     pill
                                   >
-                                    {order.payment_method}
+                                    {translatePaymentMethod(
+                                      order.payment_method
+                                    )}
                                   </Badge>
                                 </ListGroupItem>
                                 {order.order_status !== "DELIVERED" && (

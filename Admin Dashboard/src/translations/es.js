@@ -172,6 +172,30 @@ const es = {
     "Food updated success": "Producto actualizado correctamente",
     "Server connection error retry":
       "Error temporal del servidor. Reintentando automáticamente… Si persiste, espera 30 segundos e intenta de nuevo.",
+    "Payment Methods": "Métodos de pago",
+    "Payment Methods help":
+      "Configura cómo puede pagar el cliente. Los datos se sincronizan con la app web vía API BCV.",
+    "Payment Methods saved": "Métodos de pago guardados",
+    "Payment Methods local only":
+      "Guardado solo en este navegador. Despliega la API BCV o actualiza cod10-store-config.json",
+    "Synced to client API": "Sincronizado con la app cliente",
+    "Bank code": "Código del banco",
+    "ID number": "Cédula / RIF",
+    "Binance pay ID": "ID de pago Binance",
+    "Reset defaults": "Restablecer valores",
+    Assign: "Asignar",
+    "status PENDING": "Pendiente",
+    "status ACCEPTED": "Aceptado",
+    "status ASSIGNED": "Asignado",
+    "status PICKED": "Recogido",
+    "status DELIVERED": "Entregado",
+    "status CANCELLED": "Cancelado",
+    "status PAID": "Pagado",
+    "status UNPAID": "Sin pagar",
+    "Status Updated": "Estado actualizado",
+    "Rider assinged": "Repartidor asignado",
+    "Order status updated": "Estado del pedido actualizado",
+    "Payment status updated": "Estado de pago actualizado",
   },
 };
 

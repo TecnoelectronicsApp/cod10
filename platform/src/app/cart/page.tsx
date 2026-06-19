@@ -2,9 +2,18 @@
 
 import Link from 'next/link';
 import { useCart } from '@/lib/cart-context';
+import { useBcvRate } from '@/hooks/useBcvRate';
+import DualPrice from '@/components/DualPrice';
+import { useQuery, ApolloProvider } from '@apollo/client/react';
+import { CONFIGURATION } from '@/lib/graphql/operations';
+import { getApolloClient } from '@/lib/apollo-client';
 
-export default function CartPage() {
+function CartContent() {
   const { items, updateQuantity, removeItem, total } = useCart();
+  const { rate } = useBcvRate();
+  const { data: configData } = useQuery<{ configuration: { currency_symbol: string; delivery_charges: number } }>(CONFIGURATION);
+  const symbol = configData?.configuration?.currency_symbol || '$';
+  const delivery = configData?.configuration?.delivery_charges ?? 0;
 
   if (items.length === 0) {
     return (
@@ -32,7 +41,9 @@ export default function CartPage() {
             <div className="flex-1">
               <p className="font-semibold">{item.title}</p>
               <p className="text-sm text-gray-500">{item.variation.title}</p>
-              <p className="mt-1 font-bold text-orange-600">${item.unitPrice.toFixed(2)}</p>
+              <p className="mt-1 font-bold text-orange-600">
+                <DualPrice amount={item.unitPrice} symbol={symbol} exchangeRate={rate} />
+              </p>
             </div>
             <div className="flex flex-col items-end gap-2">
               <button onClick={() => removeItem(item.key)} className="text-xs text-red-500">Eliminar</button>
@@ -57,9 +68,19 @@ export default function CartPage() {
       </div>
 
       <div className="mt-6 rounded-xl bg-white p-4 shadow-sm">
-        <div className="flex justify-between text-lg font-bold">
+        <div className="flex justify-between text-sm">
+          <span>Subtotal</span>
+          <DualPrice amount={total} symbol={symbol} exchangeRate={rate} />
+        </div>
+        <div className="mt-1 flex justify-between text-sm text-gray-600">
+          <span>Envío estimado</span>
+          <DualPrice amount={delivery} symbol={symbol} exchangeRate={rate} />
+        </div>
+        <div className="mt-2 flex justify-between border-t pt-2 text-lg font-bold">
           <span>Total</span>
-          <span className="text-orange-600">${total.toFixed(2)}</span>
+          <span className="text-orange-600">
+            <DualPrice amount={total + delivery} symbol={symbol} exchangeRate={rate} />
+          </span>
         </div>
         <Link
           href="/checkout"
@@ -69,5 +90,13 @@ export default function CartPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function CartPage() {
+  return (
+    <ApolloProvider client={getApolloClient('customer')}>
+      <CartContent />
+    </ApolloProvider>
   );
 }

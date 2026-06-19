@@ -93,6 +93,15 @@ npm run start:dev
 
 ## 5. Historial de cambios (cronológico)
 
+### 2026-06-19 — Multimoneda BCV + métodos de pago + checkout
+
+- **Platform:** precios `$6.00 / Bs.XXX` con tasa BCV automática (caché 1h)
+- **Checkout:** subtotal + costo de envío + total en USD y Bs; selector de método de pago
+- **Admin → Configuración → Métodos de pago:** Efectivo, Punto de venta, Pagomóvil (banco/teléfono/cédula), Binance
+- **API BCV:** endpoints `GET/PUT /store-config` para sincronizar métodos con el cliente
+- **Fallback cliente:** `platform/public/cod10-store-config.json`
+- **Pedidos admin:** estados traducidos (Recogido, Entregado, Pagado, Asignar…)
+
 ### 2026-06-19 — Front cliente Codigo 10 (platform)
 
 - Banner hero del menú restaurado: «¡Pide tu comida favorita!» + entrega a domicilio

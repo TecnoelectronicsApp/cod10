@@ -12,6 +12,7 @@ import StripeConfiguration from "../components/Configuration/Stripe/Stripe";
 import DeliveryConfiguration from "../components/Configuration/Delivery/Delivery";
 import CurrencyConfiguration from "../components/Configuration/Currency/Currency";
 import MultiCurrencyConfiguration from "../components/Configuration/MultiCurrency/MultiCurrency";
+import PaymentMethodsConfiguration from "../components/Configuration/PaymentMethods/PaymentMethods";
 import Loader from "react-loader-spinner";
 
 const GET_CONFIGURATION = gql`
@@ -70,6 +71,7 @@ const Configuration = (props) => {
                 currencySymbol={data.configuration.currency_symbol}
               />
               <MultiCurrencyConfiguration />
+              <PaymentMethodsConfiguration />
             </Container>
           );
         }}

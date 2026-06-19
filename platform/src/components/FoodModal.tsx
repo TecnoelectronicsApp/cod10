@@ -3,6 +3,7 @@
 import { Food } from '@/lib/types';
 import { useState } from 'react';
 import { useCart } from '@/lib/cart-context';
+import DualPrice from '@/components/DualPrice';
 
 function calcPrice(
   variation: Food['variations'][0],
@@ -21,9 +22,13 @@ function calcPrice(
 export default function FoodModal({
   food,
   onClose,
+  exchangeRate,
+  symbol = '$',
 }: {
   food: Food;
   onClose: () => void;
+  exchangeRate?: number | null;
+  symbol?: string;
 }) {
   const { addItem } = useCart();
   const [variationId, setVariationId] = useState(food.variations[0]?._id || '');
@@ -97,7 +102,7 @@ export default function FoodModal({
                         : 'border-gray-200'
                     }`}
                   >
-                    {v.title} — ${(v.discounted ?? v.price).toFixed(2)}
+                    {v.title} — <DualPrice amount={v.discounted ?? v.price} symbol={symbol} exchangeRate={exchangeRate} />
                   </button>
                 ))}
               </div>
@@ -117,7 +122,11 @@ export default function FoodModal({
                       className="accent-orange-500"
                     />
                     <span className="flex-1 text-sm">{opt.title}</span>
-                    {opt.price > 0 && <span className="text-sm text-gray-500">+${opt.price.toFixed(2)}</span>}
+                    {opt.price > 0 && (
+                      <span className="text-sm text-gray-500">
+                        +<DualPrice amount={opt.price} symbol={symbol} exchangeRate={exchangeRate} />
+                      </span>
+                    )}
                   </label>
                 ))}
               </div>
@@ -144,7 +153,7 @@ export default function FoodModal({
               onClick={handleAdd}
               className="rounded-xl bg-orange-500 px-6 py-2.5 font-semibold text-white hover:bg-orange-600"
             >
-              Agregar ${(unitPrice * quantity).toFixed(2)}
+              Agregar <DualPrice amount={unitPrice * quantity} symbol={symbol} exchangeRate={exchangeRate} />
             </button>
           </div>
         </div>

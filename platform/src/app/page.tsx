@@ -6,10 +6,13 @@ import { getApolloClient } from '@/lib/apollo-client';
 import { CATEGORIES, FOOD_BY_CATEGORY, CONFIGURATION } from '@/lib/graphql/operations';
 import { Category, Food } from '@/lib/types';
 import FoodModal from '@/components/FoodModal';
+import DualPrice from '@/components/DualPrice';
+import { useBcvRate } from '@/hooks/useBcvRate';
 
 function MenuContent() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
+  const { rate } = useBcvRate();
 
   const { data: catData, loading: catLoading } = useQuery<{ categories: Category[] }>(CATEGORIES);
   const { data: configData } = useQuery<{ configuration: { currency_symbol: string; delivery_charges: number } }>(CONFIGURATION);
@@ -28,7 +31,8 @@ function MenuContent() {
       <section className="mb-8 rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 p-8 text-white shadow-lg">
         <h1 className="text-3xl font-bold md:text-4xl">¡Pide tu comida favorita!</h1>
         <p className="mt-2 text-orange-100">
-          Entrega a domicilio · Envío desde {symbol}{delivery.toFixed(2)}
+          Entrega a domicilio · Envío desde{' '}
+          <DualPrice amount={delivery} symbol={symbol} exchangeRate={rate} secondaryClassName="text-orange-100" />
         </p>
       </section>
 
@@ -92,7 +96,7 @@ function MenuContent() {
                         <p className="mt-1 line-clamp-2 text-sm text-gray-500">{food.description}</p>
                       )}
                       <p className="mt-2 text-lg font-bold text-orange-600">
-                        {symbol}{price.toFixed(2)}
+                        <DualPrice amount={price} symbol={symbol} exchangeRate={rate} />
                       </p>
                     </div>
                   </button>
@@ -108,7 +112,7 @@ function MenuContent() {
       )}
 
       {selectedFood && (
-        <FoodModal food={selectedFood} onClose={() => setSelectedFood(null)} />
+        <FoodModal food={selectedFood} onClose={() => setSelectedFood(null)} exchangeRate={rate} symbol={symbol} />
       )}
     </div>
   );

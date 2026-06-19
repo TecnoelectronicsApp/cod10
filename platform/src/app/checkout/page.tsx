@@ -3,15 +3,25 @@
 import { useMutation, useQuery, ApolloProvider } from '@apollo/client/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getApolloClient } from '@/lib/apollo-client';
 import { useCart } from '@/lib/cart-context';
 import { getToken } from '@/lib/auth';
 import { CONFIGURATION, PLACE_ORDER, PROFILE } from '@/lib/graphql/operations';
+import { useBcvRate } from '@/hooks/useBcvRate';
+import { useStoreConfig } from '@/hooks/useStoreConfig';
+import DualPrice from '@/components/DualPrice';
+import PaymentMethodSelector from '@/components/PaymentMethodSelector';
+import {
+  buildPaymentMethodLabel,
+  getEnabledPaymentMethods,
+} from '@/lib/store-config';
 
 function CheckoutContent() {
   const router = useRouter();
   const { items, total, clearCart } = useCart();
+  const { rate } = useBcvRate();
+  const { config: storeConfig, loading: configLoading } = useStoreConfig();
   const [address, setAddress] = useState({
     label: 'Casa',
     delivery_address: '',
@@ -20,6 +30,7 @@ function CheckoutContent() {
     longitude: '0',
   });
   const [error, setError] = useState('');
+  const [selectedPaymentId, setSelectedPaymentId] = useState('');
 
   const { data: configData } = useQuery<{ configuration: { delivery_charges: number; currency_symbol: string } }>(CONFIGURATION);
   const { data: profileData } = useQuery<{ profile: { addresses: { label: string; delivery_address: string; details: string; latitude: string; longitude: string; selected: boolean }[] } }>(PROFILE, { skip: !getToken('customer') });
@@ -29,6 +40,14 @@ function CheckoutContent() {
   const delivery = configData?.configuration?.delivery_charges ?? 0;
   const symbol = configData?.configuration?.currency_symbol || '$';
   const grandTotal = total + delivery;
+
+  const paymentMethods = storeConfig ? getEnabledPaymentMethods(storeConfig) : [];
+
+  useEffect(() => {
+    if (paymentMethods.length && !selectedPaymentId) {
+      setSelectedPaymentId(paymentMethods[0].id);
+    }
+  }, [paymentMethods, selectedPaymentId]);
 
   const selectedAddress = profileData?.profile?.addresses?.find((a: { selected: boolean }) => a.selected);
 
@@ -42,6 +61,17 @@ function CheckoutContent() {
     const addr = selectedAddress || address;
     if (!addr.delivery_address) {
       setError('Ingresa una dirección de entrega');
+      return;
+    }
+
+    if (!selectedPaymentId || !paymentMethods.length) {
+      setError('Selecciona un método de pago');
+      return;
+    }
+
+    const method = paymentMethods.find((m) => m.id === selectedPaymentId);
+    if (!method) {
+      setError('Método de pago no válido');
       return;
     }
 
@@ -59,7 +89,7 @@ function CheckoutContent() {
       await placeOrder({
         variables: {
           orderInput,
-          paymentMethod: 'COD',
+          paymentMethod: buildPaymentMethodLabel(method),
           address: {
             label: addr.label || 'Casa',
             delivery_address: addr.delivery_address,
@@ -130,26 +160,47 @@ function CheckoutContent() {
         )}
 
         <div className="rounded-xl bg-white p-4 shadow-sm">
+          <h2 className="mb-3 font-semibold text-gray-800">Resumen</h2>
           <div className="flex justify-between text-sm">
             <span>Subtotal</span>
-            <span>{symbol}{total.toFixed(2)}</span>
+            <DualPrice amount={total} symbol={symbol} exchangeRate={rate} />
           </div>
           <div className="mt-1 flex justify-between text-sm">
-            <span>Envío</span>
-            <span>{symbol}{delivery.toFixed(2)}</span>
+            <span>Costo de envío</span>
+            <DualPrice amount={delivery} symbol={symbol} exchangeRate={rate} />
           </div>
           <div className="mt-2 flex justify-between border-t pt-2 text-lg font-bold">
             <span>Total</span>
-            <span className="text-orange-600">{symbol}{grandTotal.toFixed(2)}</span>
+            <span className="text-orange-600">
+              <DualPrice amount={grandTotal} symbol={symbol} exchangeRate={rate} />
+            </span>
           </div>
-          <p className="mt-2 text-xs text-gray-400">Pago contra entrega (COD)</p>
+          {rate && (
+            <p className="mt-2 text-xs text-gray-400">
+              Tasa BCV: 1 USD = Bs.{rate.toFixed(2)}
+            </p>
+          )}
         </div>
+
+        {!configLoading && paymentMethods.length > 0 ? (
+          <div className="rounded-xl bg-white p-4 shadow-sm">
+            <PaymentMethodSelector
+              methods={paymentMethods}
+              selectedId={selectedPaymentId}
+              onSelect={setSelectedPaymentId}
+            />
+          </div>
+        ) : (
+          !configLoading && (
+            <p className="text-sm text-red-500">No hay métodos de pago configurados.</p>
+          )
+        )}
 
         {error && <p className="text-sm text-red-500">{error}</p>}
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || configLoading || !paymentMethods.length}
           className="w-full rounded-xl bg-orange-500 py-3 font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
         >
           {loading ? 'Procesando...' : 'Confirmar pedido'}

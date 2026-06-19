@@ -3,6 +3,8 @@ API REST BCV USD — https://github.com/alfredoiagarc/bcv-usd-api
 """
 
 from datetime import datetime
+from pathlib import Path
+import json
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
@@ -26,6 +28,39 @@ app.add_middleware(
 )
 
 scraper = BCVScraper()
+CONFIG_FILE = Path(__file__).parent / 'store_config.json'
+
+DEFAULT_STORE_CONFIG = {
+    'paymentMethods': [
+        {'id': 'efectivo', 'enabled': True, 'label': 'Efectivo'},
+        {'id': 'punto_venta', 'enabled': True, 'label': 'Punto de venta'},
+        {
+            'id': 'pagomovil',
+            'enabled': True,
+            'label': 'Pagomóvil',
+            'bankCode': '0102',
+            'bankName': 'Banco de Venezuela',
+            'phone': '',
+            'ci': '',
+        },
+        {'id': 'binance', 'enabled': False, 'label': 'Binance', 'payId': ''},
+    ]
+}
+
+
+def read_store_config():
+    if CONFIG_FILE.exists():
+        try:
+            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return DEFAULT_STORE_CONFIG.copy()
+
+
+def write_store_config(data):
+    with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 
 @app.get('/')
@@ -84,6 +119,20 @@ async def get_usd_simple():
             status_code=500,
             detail='Error al obtener el valor del USD: ' + str(e)
         )
+
+
+@app.get('/store-config')
+async def get_store_config():
+    return JSONResponse(status_code=200, content=read_store_config())
+
+
+@app.put('/store-config')
+async def put_store_config(payload: dict):
+    try:
+        write_store_config(payload)
+        return JSONResponse(status_code=200, content={'ok': True})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get('/health')

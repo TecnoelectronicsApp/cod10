@@ -1,0 +1,29 @@
+{
+  "paymentMethods": [
+    {
+      "id": "efectivo",
+      "enabled": true,
+      "label": "Efectivo"
+    },
+    {
+      "id": "punto_venta",
+      "enabled": true,
+      "label": "Punto de venta"
+    },
+    {
+      "id": "pagomovil",
+      "enabled": true,
+      "label": "Pagomóvil",
+      "bankCode": "0102",
+      "bankName": "Banco de Venezuela",
+      "phone": "04120000000",
+      "ci": "V00000000"
+    },
+    {
+      "id": "binance",
+      "enabled": false,
+      "label": "Binance",
+      "payId": ""
+    }
+  ]
+}
