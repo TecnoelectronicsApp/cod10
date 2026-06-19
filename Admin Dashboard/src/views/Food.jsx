@@ -1,118 +1,128 @@
 /* eslint-disable react/display-name */
-import React, { useState } from 'react'
-import gql from 'graphql-tag'
-import { Query, Mutation, compose, withApollo } from 'react-apollo'
-import { withTranslation } from 'react-i18next'
-// reactstrap components
-import { Badge, Card, Container, Row, Media, Modal } from 'reactstrap'
-// core components
-import Header from '../components/Headers/Header.jsx'
-import { getFoods, deleteFood } from '../apollo/server'
-import FoodComponent from '../components/Food/Food'
-import CustomLoader from '../components/Loader/CustomLoader'
-import DataTable from 'react-data-table-component'
-import orderBy from 'lodash/orderBy'
-import { transformToNewline } from '../utils/stringManipulations'
-import Loader from 'react-loader-spinner'
-import Alert from '../components/Alert'
+import React, { useState, useRef, useCallback } from "react";
+import gql from "graphql-tag";
+import { Query, Mutation, compose, withApollo } from "react-apollo";
+import { withTranslation } from "react-i18next";
+import { Badge, Card, Container, Row, Media, Modal, Spinner } from "reactstrap";
+import Header from "../components/Headers/Header.jsx";
+import { getFoodsList, deleteFood, foodByIds } from "../apollo/server";
+import FoodComponent from "../components/Food/Food";
+import CustomLoader from "../components/Loader/CustomLoader";
+import DataTable from "react-data-table-component";
+import orderBy from "lodash/orderBy";
+import { transformToNewline } from "../utils/stringManipulations";
+import Loader from "react-loader-spinner";
+import Alert from "../components/Alert";
+import { formatGraphqlError } from "../utils/graphqlError";
 
-const GET_FOODS = gql`
-  ${getFoods}
-`
+const GET_FOODS_LIST = gql`
+  ${getFoodsList}
+`;
+const GET_FOOD_DETAIL = gql`
+  ${foodByIds}
+`;
 const DELETE_FOOD = gql`
   ${deleteFood}
-`
+`;
 
-const Food = props => {
-  const [editModal, setEditModal] = useState(false)
-  const [food, setFood] = useState(null)
-  const [isOpen, setIsOpen] = useState(false)
+const Food = (props) => {
+  const [editModal, setEditModal] = useState(false);
+  const [food, setFood] = useState(null);
+  const [loadingEdit, setLoadingEdit] = useState(false);
+  const [deleteAlert, setDeleteAlert] = useState(null);
+  const listRefetchRef = useRef(null);
+  const { t } = props;
 
-  const toggleModal = food => {
-    setEditModal(!editModal)
-    setFood(food)
-  }
+  const showDeleteAlert = (message, severity) => {
+    setDeleteAlert({ message: message, severity: severity });
+    setTimeout(
+      function () {
+        setDeleteAlert(null);
+      },
+      severity === "success" ? 3000 : 5000
+    );
+  };
+
+  const confirmDelete = (mutateFn, id) => {
+    if (!window.confirm(t("Delete confirm"))) return;
+    mutateFn({ variables: { id: id } })
+      .then(function () {
+        showDeleteAlert(t("Delete success"), "success");
+      })
+      .catch(function (err) {
+        showDeleteAlert(formatGraphqlError(err) || t("Delete error"), "danger");
+      });
+  };
+
+  const handleSaved = useCallback(() => {
+    if (listRefetchRef.current) {
+      listRefetchRef.current().catch(function () {});
+    }
+  }, []);
+
+  const closeEditModal = () => {
+    setEditModal(false);
+    setFood(null);
+    setLoadingEdit(false);
+  };
+
+  const openEditModal = async (row) => {
+    setEditModal(true);
+    setLoadingEdit(true);
+    setFood(null);
+    try {
+      const result = await props.client.query({
+        query: GET_FOOD_DETAIL,
+        variables: { ids: [row._id] },
+        fetchPolicy: "network-only",
+      });
+      const full = result.data.foodByIds && result.data.foodByIds[0];
+      setFood(full || row);
+    } catch (e) {
+      setFood(row);
+    } finally {
+      setLoadingEdit(false);
+    }
+  };
 
   const propExists = (obj, path) => {
-    return path.split('.').reduce((obj, prop) => {
-      return obj && obj[prop] ? obj[prop] : ''
-    }, obj)
-  }
+    return path.split(".").reduce((obj, prop) => {
+      return obj && obj[prop] ? obj[prop] : "";
+    }, obj);
+  };
 
   const customSort = (rows, field, direction) => {
-    const handleField = row => {
+    const handleField = (row) => {
       if (field && isNaN(propExists(row, field))) {
-        return propExists(row, field).toLowerCase()
+        return propExists(row, field).toLowerCase();
       }
-
-      return row[field]
-    }
-
-    return orderBy(rows, handleField, direction)
-  }
+      return row[field];
+    };
+    return orderBy(rows, handleField, direction);
+  };
 
   const handleSort = (column, sortDirection) =>
-    console.log(column.selector, sortDirection)
+    console.log(column.selector, sortDirection);
 
-  const columns = [
-    {
-      name: 'Title',
-      selector: 'title',
-      sortable: true,
-      cell: row => (
-        <>
-          <Media>
-            <span className="mb-0 text-sm">{row.title}</span>
-          </Media>
-        </>
-      )
-    },
-    {
-      name: 'Description',
-      sortable: true,
-      selector: 'description',
-      cell: row => <>{transformToNewline(row.description, 3)}</>
-    },
-    {
-      name: 'Category',
-      sortable: true,
-      selector: 'category.title',
-      cell: row => <>{row.category.title}</>
-    },
-    {
-      name: 'Image',
-      cell: row => (
-        <>
-          {!!row.img_url && (
-            <img className="img-responsive" src={row.img_url} alt="img menu" />
-          )}
-          {!row.img_url && 'No Image'}
-        </>
-      )
-    },
-    {
-      name: 'Action',
-      cell: row => <>{actionButtons(row)}</>
-    }
-  ]
-
-  const actionButtons = row => {
+  const actionButtons = (row) => {
     return (
       <>
         <Badge
           href="#pablo"
-          onClick={e => {
-            e.preventDefault()
-            toggleModal(row)
+          onClick={(e) => {
+            e.preventDefault();
+            openEditModal(row);
           }}
-          color="primary">
-          Edit
+          color="primary"
+        >
+          {t("Edit")}
         </Badge>
         &nbsp;&nbsp;
         <Mutation
           mutation={DELETE_FOOD}
-          refetchQueries={[{ query: GET_FOODS, variables: { page: 0 } }]}>
-          {(deleteFood, { loading: deleteLoading }) => {
+          refetchQueries={[{ query: GET_FOODS_LIST, variables: { page: 0 } }]}
+        >
+          {(deleteFoodMut, { loading: deleteLoading }) => {
             if (deleteLoading) {
               return (
                 <Loader
@@ -122,85 +132,137 @@ const Food = props => {
                   width={40}
                   visible={deleteLoading}
                 />
-              )
+              );
             }
             return (
               <Badge
                 href="#pablo"
                 color="danger"
-                onClick={e => {
-                  e.preventDefault()
-                  // deleteFood({ variables: { id: row._id } })
-                  setIsOpen(true)
-                  setTimeout(() => {
-                    setIsOpen(false)
-                  }, 2000)
-                }}>
-                {'Delete'}
+                onClick={(e) => {
+                  e.preventDefault();
+                  confirmDelete(deleteFoodMut, row._id);
+                }}
+              >
+                {t("Delete")}
               </Badge>
-            )
+            );
           }}
         </Mutation>
       </>
-    )
-  }
+    );
+  };
 
-  const { t } = props
+  const columns = [
+    {
+      name: t("Title"),
+      selector: "title",
+      sortable: true,
+      cell: (row) => (
+        <Media>
+          <span className="mb-0 text-sm">{row.title}</span>
+        </Media>
+      ),
+    },
+    {
+      name: t("Description"),
+      sortable: true,
+      selector: "description",
+      cell: (row) => <>{transformToNewline(row.description, 3)}</>,
+    },
+    {
+      name: t("Category"),
+      sortable: true,
+      selector: "category.title",
+      cell: (row) => <>{row.category && row.category.title}</>,
+    },
+    {
+      name: t("Image"),
+      cell: (row) => (
+        <>
+          {!!row.img_url && (
+            <img className="img-responsive" src={row.img_url} alt="img menu" />
+          )}
+          {!row.img_url && t("No Image")}
+        </>
+      ),
+    },
+    {
+      name: t("Action"),
+      cell: (row) => <>{actionButtons(row)}</>,
+    },
+  ];
+
   return (
     <>
       <Header />
-      {/* Page content */}
       <Container className="mt--7" fluid>
-        <FoodComponent />
-        {/* Table */}
-        <Row className="mt-5">
-          <div className="col">
-            <Card className="shadow">
-              {isOpen && (
-                <Alert
-                  message="Delete feature will available after purchasing product"
-                  severity="warning"
-                />
-              )}
-              <Query query={GET_FOODS} variables={{ page: 0 }}>
-                {({ loading, error, data }) => {
-                  if (error) {
-                    return (
-                      <span>
-                        `${t('Error')}! ${error.message}`
-                      </span>
-                    )
-                  }
-                  return (
-                    <DataTable
-                      title={t('Foods')}
-                      columns={columns}
-                      data={data.foods}
-                      pagination
-                      progressPending={loading}
-                      progressComponent={<CustomLoader />}
-                      onSort={handleSort}
-                      sortFunction={customSort}
-                      defaultSortField="title"
-                    />
-                  )
-                }}
-              </Query>
-            </Card>
-          </div>
-        </Row>
+        <Query
+          query={GET_FOODS_LIST}
+          variables={{ page: 0 }}
+          fetchPolicy="network-only"
+        >
+          {({ loading, error, data, refetch }) => {
+            listRefetchRef.current = refetch;
+            return (
+              <>
+                <FoodComponent onSaved={handleSaved} />
+                <Row className="mt-5">
+                  <div className="col">
+                    <Card className="shadow">
+                      {deleteAlert && (
+                        <Alert
+                          message={deleteAlert.message}
+                          severity={deleteAlert.severity}
+                        />
+                      )}
+                      {error && (
+                        <div className="p-4 text-danger">
+                          {t("Error")}! {formatGraphqlError(error)}
+                        </div>
+                      )}
+                      <DataTable
+                        title={t("Foods")}
+                        columns={columns}
+                        data={(data && data.foods) || []}
+                        pagination
+                        progressPending={loading}
+                        progressComponent={<CustomLoader />}
+                        onSort={handleSort}
+                        sortFunction={customSort}
+                        defaultSortField="title"
+                      />
+                    </Card>
+                  </div>
+                </Row>
+              </>
+            );
+          }}
+        </Query>
         <Modal
           className="modal-dialog-centered"
           size="lg"
           isOpen={editModal}
-          toggle={() => {
-            toggleModal()
-          }}>
-          <FoodComponent food={food} />
+          toggle={closeEditModal}
+        >
+          {loadingEdit ? (
+            <div className="p-5 text-center">
+              <Spinner color="primary" />
+              <p className="mt-3 text-muted">{t("Loading")}</p>
+            </div>
+          ) : (
+            <FoodComponent
+              key={food ? food._id : "edit"}
+              food={food}
+              onSaved={() => {
+                handleSaved();
+                closeEditModal();
+              }}
+            />
+          )}
         </Modal>
       </Container>
     </>
-  )
-}
+  );
+};
 
-export default compose(withApollo, withTranslation())(Food)
+export default compose(withApollo, withTranslation())(Food);

@@ -39,7 +39,7 @@ function KitchenLoginForm() {
       <div className="w-full max-w-md">
         <div className="mb-6 text-center text-white">
           <span className="text-5xl">👨‍🍳</span>
-          <h1 className="mt-2 text-2xl font-bold">Pantalla de Cocina</h1>
+          <h1 className="mt-2 text-2xl font-bold">Cocina Codigo 10</h1>
           <p className="text-gray-400">Acceso para el equipo de cocina</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4 rounded-xl bg-gray-800 p-6">

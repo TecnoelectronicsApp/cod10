@@ -9,6 +9,8 @@
     "build:platform": "cd platform && npm run build",
     "build:admin": "cd \"Admin Dashboard\" && npm run build",
     "install:all": "cd platform && npm install && cd \"../Admin Dashboard\" && npm install --legacy-peer-deps",
+    "fix:food-images": "node scripts/fix-null-food-images.mjs",
+    "dev:bcv-api": "cd services/bcv-usd-api && pip install -r requirements.txt && python api_server.py",
     "memoria": "type MEMORIA.md"
   }
 }

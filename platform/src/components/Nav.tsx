@@ -3,12 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCart } from '@/lib/cart-context';
+import BrandLogo from '@/components/BrandLogo';
 
 const links = [
   { href: '/', label: 'Menú', icon: '🍽️' },
   { href: '/orders', label: 'Mis pedidos', icon: '📦' },
-  { href: '/kitchen', label: 'Cocina', icon: '👨‍🍳' },
-  { href: '/rider', label: 'Repartidor', icon: '🛵' },
 ];
 
 export default function Nav() {
@@ -22,9 +21,8 @@ export default function Nav() {
   return (
     <header className="sticky top-0 z-50 border-b border-orange-100 bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-2xl">🍔</span>
-          <span className="text-lg font-bold text-orange-600">FoodDelivery</span>
+        <Link href="/">
+          <BrandLogo size={44} tagline="comida rapida de verdad" />
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
@@ -41,14 +39,6 @@ export default function Nav() {
               {l.icon} {l.label}
             </Link>
           ))}
-          <a
-            href="https://cod10-admin.vercel.app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
-          >
-            ⚙️ Admin
-          </a>
         </nav>
 
         <div className="flex items-center gap-3">

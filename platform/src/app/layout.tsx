@@ -7,8 +7,9 @@ import Nav from '@/components/Nav';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'FoodDelivery — Menú, Cocina y Repartidor',
-  description: 'Sistema completo de delivery: menú para clientes, pantalla de cocina y app de repartidor',
+  title: 'Codigo 10 — comida rapida de verdad',
+  description: 'Codigo 10 — comida rapida de verdad. Pide online y recibe en casa.',
+  icons: { icon: '/codigo10.png' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

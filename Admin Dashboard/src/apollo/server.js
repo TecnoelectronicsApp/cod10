@@ -1,3 +1,18 @@
+export const getFoodsList = `query FoodsList($page:Int){
+    foods(page:$page){
+      _id
+      title
+      description
+      stock
+      img_url
+      category{
+          _id
+          title
+      }
+    }
+  }`;
+
+/** @deprecated Usar getFoodsList — variations/addons rompen en API demo */
 export const getFoods = `query Foods($page:Int){
     foods(page:$page){
       _id
@@ -29,7 +44,31 @@ export const getFoods = `query Foods($page:Int){
           title
       }
     }
-  }`
+  }`;
+
+export const foodByIds = `query FoodByIds($ids:[String!]!){
+  foodByIds(ids: $ids) {
+    _id
+    title
+    description
+    img_url
+    stock
+    category {
+      _id
+      title
+    }
+    variations {
+      _id
+      title
+      price
+      discounted
+      addons {
+        _id
+        title
+      }
+    }
+  }
+}`;
 
 export const createFood = `
   mutation CreateFood($foodInput:FoodInput!){
@@ -39,32 +78,8 @@ export const createFood = `
         _id
         title
         img_url
-        description
-        stock
-        variations{
-          _id
-          title
-          price
-          discounted
-          addons{
-            _id
-            title
-            description
-            quantity_minimum
-            quantity_maximum
-            options{
-              _id
-              title
-              price
-            }
-          }
-        }
-        category{
-          _id
-          title
       }
-      }
-    }`
+    }`;
 
 export const editFood = `
     mutation EditFood($foodInput:FoodInput!){
@@ -74,40 +89,15 @@ export const editFood = `
           _id
           title
           img_url
-          description
-          stock
-          tag
-          variations{
-            _id
-            title
-            price
-            discounted
-            addons{
-              _id
-              title
-              description
-              quantity_minimum
-              quantity_maximum
-              options{
-                _id
-                title
-                price
-              }
-            }
-          }
-          category{
-            _id
-            title
         }
-        }
-      }`
+      }`;
 
 export const deleteFood = `
       mutation DeleteFood($id:String!){
         deleteFood(id:$id){
           _id
         }
-      }`
+      }`;
 
 export const getCategories = `query AllCategories($page:Int)
     {
@@ -116,7 +106,7 @@ export const getCategories = `query AllCategories($page:Int)
         title
         description
         img_menu
-      }}`
+      }}`;
 
 export const categories = `query categories
     {
@@ -125,7 +115,7 @@ export const categories = `query categories
           title
           description
           img_menu
-    }}`
+    }}`;
 
 export const subscribePlaceOrder = `subscription SubscribePaceOrder{
   subscribePlaceOrder{
@@ -194,24 +184,24 @@ export const subscribePlaceOrder = `subscription SubscribePaceOrder{
     }
     origin
   }
-}`
+}`;
 
 export const createCategory = `
 mutation CreateCategory($title:String!,$description:String!,$img_menu:String){
   createCategory(category:{title:$title,description:$description,img_menu:$img_menu}){_id}
-}`
+}`;
 
 export const editCategory = `
       mutation EditCategory( $_id:String,$title:String!,$description:String!,$img_menu:String){
         editCategory(category:{_id:$_id,title:$title,description:$description,img_menu:$img_menu}){_id}
-      }`
+      }`;
 
 export const deleteCategory = `
       mutation DeleteCategory($id:String!){
         deleteCategory(id:$id){
           _id
         }
-      }`
+      }`;
 export const getOrders = `query Orders($page:Int,$rows:Int,$search:String){
   allOrders(page:$page,rows:$rows,search:$search){
     _id
@@ -276,7 +266,7 @@ export const getOrders = `query Orders($page:Int,$rows:Int,$search:String){
       name
     }
   }
-}`
+}`;
 
 export const getDashboardTotal = `query GetDashboardTotal($startingDate: String, $endingDate: String){
   getDashboardTotal(starting_date: $startingDate, ending_date: $endingDate){
@@ -286,7 +276,7 @@ export const getDashboardTotal = `query GetDashboardTotal($startingDate: String,
     total_ratings
     avg_ratings
   }
-}`
+}`;
 export const getDashboardSales = `query GetDashboardSales($startingDate: String, $endingDate: String){
   getDashboardSales(starting_date: $startingDate, ending_date: $endingDate){
     orders{
@@ -294,7 +284,7 @@ export const getDashboardSales = `query GetDashboardSales($startingDate: String,
       amount
     }
   }
-}`
+}`;
 export const getDashboardOrders = `query GetDashboardOrders($startingDate: String, $endingDate: String){
   getDashboardOrders(starting_date: $startingDate, ending_date: $endingDate){
     orders{
@@ -302,7 +292,7 @@ export const getDashboardOrders = `query GetDashboardOrders($startingDate: Strin
       count
     }
   }
-}`
+}`;
 
 export const getDashboardData = `query GetDashboardData($startingDate: String, $endingDate: String){
   getDashboardData(starting_date: $startingDate, ending_date: $endingDate){
@@ -315,7 +305,7 @@ export const getDashboardData = `query GetDashboardData($startingDate: String, $
       amount
     }
   }
-}`
+}`;
 
 export const getConfiguration = `query GetConfiguration{
   configuration{
@@ -333,14 +323,14 @@ export const getConfiguration = `query GetConfiguration{
     currency
     currency_symbol
   }
-}`
+}`;
 
 export const saveOrderConfiguration = `mutation SaveOrderConfiguration($configurationInput:OrderConfigurationInput!){
   saveOrderConfiguration(configurationInput:$configurationInput){
     _id
     order_id_prefix
   }
-}`
+}`;
 export const saveEmailConfiguration = `mutation SaveEmailConfiguration($configurationInput:EmailConfigurationInput!){
   saveEmailConfiguration(configurationInput:$configurationInput){
     _id
@@ -348,13 +338,13 @@ export const saveEmailConfiguration = `mutation SaveEmailConfiguration($configur
     password
     enable_email
   }
-}`
+}`;
 export const saveMongoConfiguration = `mutation SaveMongoConfiguration($configurationInput:MongoConfigurationInput!){
   saveMongoConfiguration(configurationInput:$configurationInput){
     _id
     mongodb_url
   }
-}`
+}`;
 
 export const savePaypalConfiguration = `mutation SavePaypalConfiguration($configurationInput:PaypalConfigurationInput!){
   savePaypalConfiguration(configurationInput:$configurationInput){
@@ -363,7 +353,7 @@ export const savePaypalConfiguration = `mutation SavePaypalConfiguration($config
     client_secret
     sandbox
   }
-}`
+}`;
 
 export const saveStripeConfiguration = `mutation SaveStripeConfiguration($configurationInput:StripeConfigurationInput!){
   saveStripeConfiguration(configurationInput:$configurationInput){
@@ -371,20 +361,20 @@ export const saveStripeConfiguration = `mutation SaveStripeConfiguration($config
     publishable_key
     secret_key
   }
-}`
+}`;
 export const saveDeliveryConfiguration = `mutation SaveDeliveryConfiguration($configurationInput:DeliveryConfigurationInput!){
   saveDeliveryConfiguration(configurationInput:$configurationInput){
     _id
     delivery_charges
   }
-}`
+}`;
 export const saveCurrencyConfiguration = `mutation SaveCurrencyConfiguration($configurationInput:CurrencyConfigurationInput!){
   saveCurrencyConfiguration(configurationInput:$configurationInput){
     _id
     currency
     currency_symbol
   }
-}`
+}`;
 
 export const adminLogin = `mutation AdminLogin($email:String!,$password:String!){
   adminLogin(email:$email,password:$password){
@@ -393,7 +383,7 @@ export const adminLogin = `mutation AdminLogin($email:String!,$password:String!)
     name
     email
   }
-}`
+}`;
 
 export const updateOrderStatus = `mutation UpdateOrderStatus($id:String!,$status:String!,$reason:String){
   updateOrderStatus(id:$id,status:$status,reason:$reason){
@@ -402,12 +392,12 @@ export const updateOrderStatus = `mutation UpdateOrderStatus($id:String!,$status
     payment_status
   }
 }
-`
+`;
 
 export const sendNotificationUser = `mutation SendNotificationUser($notificationTitle:String, $notificationBody: String!){
   sendNotificationUser(notificationTitle:$notificationTitle,notificationBody:$notificationBody)
 }
-`
+`;
 
 export const updateStatus = `mutation UpdateStatus($id:String!,$status:Boolean!,$reason:String){
   updateStatus(id:$id,status:$status,reason:$reason){
@@ -416,14 +406,14 @@ export const updateStatus = `mutation UpdateStatus($id:String!,$status:Boolean!,
     reason
   }
 }
-`
+`;
 
 export const uploadToken = `mutation UploadToken($pushToken:String!){
   uploadToken(pushToken:$pushToken){
     _id
     push_token
   }
-}`
+}`;
 
 export const getUsers = `query Users($page:Int){
   users(page:$page){
@@ -441,7 +431,7 @@ export const getUsers = `query Users($page:Int){
       label
     }
   }
-}`
+}`;
 
 export const createUser = `
   mutation CreateUser($email:String!,$password:String!,$name:String!,$phone:String!){
@@ -456,7 +446,7 @@ export const createUser = `
       email
       phone
     }
-  }`
+  }`;
 
 export const reviews = `query AllReviews($offset:Int){
   allReviews(offset:$offset){
@@ -478,13 +468,13 @@ export const reviews = `query AllReviews($offset:Int){
       }
    }
   }
-}`
+}`;
 
 export const resetPassword = `mutation ResetPassword($password:String!,$token:String!){
   resetPassword(password:$password,token:$token){
     result
   }
-}`
+}`;
 
 export const createRider = `
 mutation CreateRider($riderInput:RiderInput!){
@@ -498,7 +488,7 @@ mutation CreateRider($riderInput:RiderInput!){
     phone
     available
     }
-  }`
+  }`;
 
 export const getRiders = `query{
   riders{
@@ -509,7 +499,7 @@ export const getRiders = `query{
     phone
     available
   }
-}`
+}`;
 
 export const getAvailableRiders = `query{
   availableRiders{
@@ -519,7 +509,7 @@ export const getAvailableRiders = `query{
     phone
     available
   }
-}`
+}`;
 
 export const editRider = `
     mutation EditRider($riderInput:RiderInput!){
@@ -531,25 +521,25 @@ export const editRider = `
           username
           phone
         }
-      }`
+      }`;
 export const deleteRider = `
       mutation DeleteRider($id:String!){
         deleteRider(id:$id){
           _id
         }
-      }`
+      }`;
 
 export const toggleAvailablity = `
       mutation ToggleRider($id:String){
         toggleAvailablity(id:$id){
           _id
         }
-}`
+}`;
 
 export const orderCount = `
 query{
   orderCount
-}`
+}`;
 
 export const assignRider = ` mutation AssignRider($id:String!,$riderId:String!){
   assignRider(id:$id,riderId:$riderId){
@@ -559,16 +549,16 @@ export const assignRider = ` mutation AssignRider($id:String!,$riderId:String!){
       name
     }
   }
-}`
+}`;
 
 export const getOrderStatuses = `query{
   getOrderStatuses
 }
-`
+`;
 
 export const getPaymentStatuses = `query{
   getPaymentStatuses
-}`
+}`;
 
 export const updatePaymentStatus = `mutation UpdatePaymentStatus($id:String!,$status:String!){
   updatePaymentStatus(id:$id,status:$status){
@@ -577,7 +567,7 @@ export const updatePaymentStatus = `mutation UpdatePaymentStatus($id:String!,$st
     paid_amount
   }
 }
-`
+`;
 
 export const createOptions = `mutation CreateOptions($optionInput:[OptionInput]){
   createOptions(optionInput:$optionInput){
@@ -586,7 +576,7 @@ export const createOptions = `mutation CreateOptions($optionInput:[OptionInput])
     description
     price
   }
-}`
+}`;
 
 export const getOptions = `query Options{
   options {
@@ -596,7 +586,7 @@ export const getOptions = `query Options{
     price
   }
 }
-`
+`;
 
 export const options = `query AllOptions($page:Int){
   allOptions(page:$page) {
@@ -606,7 +596,7 @@ export const options = `query AllOptions($page:Int){
     price
   }
 }
-`
+`;
 
 export const createAddons = `mutation CreateAddons($addonInput:[AddonInput]){
   createAddons(addonInput:$addonInput){
@@ -622,7 +612,7 @@ export const createAddons = `mutation CreateAddons($addonInput:[AddonInput]){
     quantity_minimum
     quantity_maximum
   }
-}`
+}`;
 export const editAddon = `mutation editAddon($addonInput:AddonInput){
   editAddon(addonInput:$addonInput){
     _id
@@ -637,7 +627,7 @@ export const editAddon = `mutation editAddon($addonInput:AddonInput){
     quantity_minimum
     quantity_maximum
   }
-}`
+}`;
 
 export const getAddons = `query Addons{
   addons{
@@ -652,7 +642,7 @@ export const getAddons = `query Addons{
   }
   quantity_minimum
   quantity_maximum
-}}`
+}}`;
 
 export const addons = `query AllAddons($page:Int){
   allAddons(page:$page){
@@ -668,17 +658,17 @@ export const addons = `query AllAddons($page:Int){
   quantity_minimum
   quantity_maximum
   is_active
-}}`
+}}`;
 
 export const deleteAddon = `
       mutation DeleteAddon($id:String!){
         deleteAddon(id:$id)
-      }`
+      }`;
 
 export const deleteOption = `
       mutation DeleteOption($id:String!){
         deleteOption(id:$id)
-      }`
+      }`;
 export const editOption = `mutation editOption($optionInput:OptionInput){
   editOption(optionInput:$optionInput){
           _id
@@ -686,7 +676,7 @@ export const editOption = `mutation editOption($optionInput:OptionInput){
           description
           price
         }
-      }`
+      }`;
 
 export const createCoupon = `mutation CreateCoupon($couponInput:CouponInput!){
   createCoupon(couponInput:$couponInput){
@@ -695,7 +685,7 @@ export const createCoupon = `mutation CreateCoupon($couponInput:CouponInput!){
     discount
     enabled
   }
-}`
+}`;
 export const editCoupon = `mutation editCoupon($couponInput:CouponInput!){
   editCoupon(couponInput:$couponInput){
     _id
@@ -703,10 +693,10 @@ export const editCoupon = `mutation editCoupon($couponInput:CouponInput!){
     discount
     enabled
         }
-      }`
+      }`;
 export const deleteCoupon = `mutation DeleteCoupon($id:String!){
         deleteCoupon(id:$id)
-      }`
+      }`;
 
 export const getCoupons = `query Coupons{
         coupons {
@@ -715,4 +705,4 @@ export const getCoupons = `query Coupons{
           discount
           enabled
         }
-      }`
+      }`;

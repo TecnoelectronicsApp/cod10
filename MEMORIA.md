@@ -3,7 +3,7 @@
 > **OBLIGATORIO:** Leer este archivo completo al inicio de cada solicitud antes de actuar.
 > Actualizar este archivo al finalizar cualquier cambio relevante.
 
-**Última actualización:** 2026-06-19  
+**Última actualización:** 2026-06-19 (brand front platform + deploy)  
 **Repositorio:** https://github.com/TecnoelectronicsApp/cod10  
 **Organización Vercel:** tecnoelectronics-projects
 
@@ -93,6 +93,64 @@ npm run start:dev
 
 ## 5. Historial de cambios (cronológico)
 
+### 2026-06-19 — Front cliente Codigo 10 (platform)
+
+- Banner hero del menú restaurado: «¡Pide tu comida favorita!» + entrega a domicilio
+- Eliminados enlaces Cocina, Repartidor y Admin del front público (rutas `/kitchen` y `/rider` siguen activas por URL directa)
+- Metadata actualizada sin referencias a cocina/repartidor
+
+### 2026-06-19 — Eliminar habilitado en admin
+
+- **Causa:** Enatega demo deshabilitaba delete con aviso "adquirir producto completo" (mutaciones comentadas)
+- **Fix:** Productos, categorías, opciones, complementos, cupones y repartidores — delete real con confirmación
+- **Usuarios:** API demo no expone `deleteUser`; botón Info se mantiene
+
+### 2026-06-19 — Fix definitivo guardado productos (MongoDB / Pool destroyed)
+
+- **Causa real:** Tras `createFood`/`editFood`, Apollo ejecutaba `refetchQueries` con la query pesada `getFoods` (variations → addons → options). Un producto corrupto en la API demo (índice ~19) rompe esa query → error `connection ... mongodb closed` / `Pool was force destroyed` **aunque el producto sí se guardó**.
+- **Fix:**
+  - Nueva query ligera `getFoodsList` (sin variations/addons) para tabla y refetch
+  - Nueva query `foodByIds` para cargar detalle al editar
+  - Eliminado `refetchQueries` en mutación de Food; refresh manual vía `onSaved()`
+  - `utils/graphqlError.js`: deduplicar errores + reintento 3× ante fallos transitorios MongoDB
+  - `Category.jsx`: refetch usa `getFoodsList` en lugar de `getFoods`
+- **Verificado:** query pesada falla en API; query ligera y build admin OK
+- **Limitación:** API demo compartida sigue siendo inestable; el admin ya no dispara la query que provoca el error al guardar
+
+### 2026-06-19 — Fix traducciones
+
+### 2026-06-19 — Cocina Codigo 10 (KDS)
+- Título: **Cocina Codigo 10** (antes "Cocina — KDS")
+- Fix pedidos no visibles: `allOrders(page: 0)` — la API usa paginación desde 0, no 1
+- Botón Actualizar con contador 10s→0 y auto-refresh
+- Campanilla (Web Audio) al llegar pedido nuevo (subscription + detección en polling)
+
+### 2026-06-19 — Marca Codigo 10 + fix guardado productos
+- Logo `codigo10.png` en sidebar admin, platform Nav y notificaciones
+- Textos visibles "Enatega" → "Codigo 10" (sin tocar localStorage ni credenciales API)
+- Mutación createFood/editFood simplificada + reintento ante error MongoDB
+
+### 2026-06-19 — Tasa BCV automática (multimoneda)
+- Integración con [bcv-usd-api](https://github.com/alfredoiagarc/bcv-usd-api) en `services/bcv-usd-api/`
+- Admin consulta `GET /usd/simple` al iniciar y cada hora (caché localStorage)
+- Variable `REACT_APP_BCV_API_URL` (local: `http://localhost:8000`)
+- Comando: `npm run dev:bcv-api` (Python/FastAPI, puerto 8000)
+- Desplegar `services/bcv-usd-api` en Railway y apuntar la variable en Vercel admin
+
+### 2026-06-19 — Español, multimoneda USD/VES y fix dev Windows
+- **Idioma español:** `translations/es.js`, idioma por defecto `es`, selector en navbar admin y login
+- **Multimoneda:** panel Configuración → Multimoneda (USD + Bs/VES, tasa de cambio en localStorage)
+- **Moneda VES** añadida a `config/currencies.js`; accesos rápidos USD/VES en Configuración → Moneda
+- **Pedidos:** precios muestran `$10.00 (Bs.365.00 VES)` cuando multimoneda está activa
+- **Fix Windows:** `PORT=3006` y `NODE_OPTIONS=--openssl-legacy-provider` en `.env.development` (Node 22 + react-scripts 2.x)
+
+### 2026-06-19 — Fix listado productos admin (img_url null)
+- **Causa:** productos guardados sin imagen quedaban con `img_url: null` en MongoDB; la query `foods { img_url }` fallaba entera → tabla vacía + error GraphQL
+- **Fix Food.jsx:** `resolveFoodImageUrl()` siempre envía URL válida (placeholder si no hay imagen); eliminado `successSetter('')` al guardar
+- **Fix views/Food.jsx:** mensaje de error sin backticks literales
+- **Script:** `npm run fix:food-images` → `scripts/fix-null-food-images.mjs` (repara productos rotos en API demo)
+- **Reparados en API:** 5 productos "Cafe" con img_url null + 2 previos manualmente
+
 ### 2026-06-19 — Memoria, reglas y dev local
 - Creado `MEMORIA.md` (este archivo)
 - Creada regla Cursor `.cursor/rules/proyecto-memoria.mdc` (lectura obligatoria)
@@ -133,7 +191,8 @@ npm run start:dev
 4. **Admin SCSS:** importar CSS precompilado, no `.scss` en build
 5. **Platform:** hooks Apollo desde `@apollo/client/react`, queries con `gql`
 6. **Usuarios admin:** solo lectura + crear; eliminar requiere backend propio
-7. **Imagen productos:** obligatoria (`img_url` non-nullable en GraphQL)
+7. **Imagen productos:** obligatoria (`img_url` non-nullable en GraphQL). Si falta imagen, usar placeholder `https://placehold.co/600x400/f97316/ffffff?text=Comida`. Nunca enviar `img_url` vacío. Si la tabla Food no carga: `npm run fix:food-images`
+8. **Listado productos admin:** usar siempre `getFoodsList` (ligera). NO usar `getFoods` con variations/addons en refetch ni en tabla — rompe contra API demo
 
 ---
 

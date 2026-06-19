@@ -30,10 +30,6 @@ function MenuContent() {
         <p className="mt-2 text-orange-100">
           Entrega a domicilio · Envío desde {symbol}{delivery.toFixed(2)}
         </p>
-        <div className="mt-4 flex flex-wrap gap-2 text-sm">
-          <a href="/kitchen" className="rounded-lg bg-white/20 px-3 py-1 hover:bg-white/30">👨‍🍳 Cocina</a>
-          <a href="/rider" className="rounded-lg bg-white/20 px-3 py-1 hover:bg-white/30">🛵 Repartidor</a>
-        </div>
       </section>
 
       {catLoading ? (

@@ -1,9 +1,9 @@
 /* eslint-disable camelcase */
-import React, { useState } from 'react'
-import gql from 'graphql-tag'
-import { Query, Mutation } from 'react-apollo'
-import { validateFunc } from '../../constraints/constraints'
-import { withTranslation } from 'react-i18next'
+import React, { useState } from "react";
+import gql from "graphql-tag";
+import { Query, Mutation } from "react-apollo";
+import { validateFunc } from "../../constraints/constraints";
+import { withTranslation } from "react-i18next";
 // reactstrap components
 import {
   Button,
@@ -17,356 +17,405 @@ import {
   Col,
   Alert,
   Modal,
-  Label
-} from 'reactstrap'
+  Label,
+} from "reactstrap";
 // core components
-import { cloudinary_upload_url, cloudinary_food } from '../../config/config'
+import { cloudinary_upload_url, cloudinary_food } from "../../config/config";
 import {
   createFood,
   editFood,
   categories,
   getAddons,
-  getFoods
-} from '../../apollo/server'
-import AddonComponent from '../Addon/Addon'
-import Loader from 'react-loader-spinner'
+} from "../../apollo/server";
+import AddonComponent from "../Addon/Addon";
+import Loader from "react-loader-spinner";
+import {
+  formatGraphqlError,
+  isTransientServerError,
+  retryAsync,
+} from "../../utils/graphqlError";
 
 const CREATE_FOOD = gql`
   ${createFood}
-`
+`;
 const EDIT_FOOD = gql`
   ${editFood}
-`
+`;
 const GET_CATEGORIES = gql`
   ${categories}
-`
+`;
 const GET_ADDONS = gql`
   ${getAddons}
-`
-const GET_FOODS = gql`
-  ${getFoods}
-`
+`;
 
 function Food(props) {
   const foodVariations = props.food
-    ? props.food.variations.map(({ title, price, discounted, addons }) => {
-      return {
-        title,
-        price,
-        discounted,
-        addons: addons.map(addon => addon._id),
-        titleError: null,
-        priceError: null
-      }
-    })
+    ? (props.food.variations || []).map(
+        ({ title, price, discounted, addons }) => {
+          return {
+            title,
+            price,
+            discounted,
+            addons: (addons || [])
+              .map((addon) => (addon && addon._id ? addon._id : addon))
+              .filter(Boolean),
+            titleError: null,
+            priceError: null,
+          };
+        }
+      )
     : [
-      {
-        title: '',
-        price: '',
-        discounted: '',
-        addons: [],
-        titleError: null,
-        priceError: null,
-        discountedError: null
-      }
-    ]
+        {
+          title: "",
+          price: "",
+          discounted: "",
+          addons: [],
+          titleError: null,
+          priceError: null,
+          discountedError: null,
+        },
+      ];
 
-  const mutation = useState(props.food ? EDIT_FOOD : CREATE_FOOD)
-  const [title, titleSetter] = useState(props.food ? props.food.title : '')
+  const mutation = useState(props.food ? EDIT_FOOD : CREATE_FOOD);
+  const [title, titleSetter] = useState(props.food ? props.food.title : "");
   const [description, descriptionSetter] = useState(
-    props.food ? props.food.description : ''
-  )
-  const [stock, stockSetter] = useState(props.food ? props.food.stock : '')
+    props.food ? props.food.description : ""
+  );
+  const [stock, stockSetter] = useState(props.food ? props.food.stock : "");
   const [imgMenu, imgMenuSetter] = useState(
-    props.food ? props.food.img_url : ''
-  )
-  const [selectedFile, selectedFileSetter] = useState(null)
+    props.food ? props.food.img_url : ""
+  );
+  const [selectedFile, selectedFileSetter] = useState(null);
   const [imageUrlInput, imageUrlInputSetter] = useState(
-    props.food ? props.food.img_url : ''
-  )
+    props.food ? props.food.img_url : ""
+  );
   const [category, categorySetter] = useState(
-    props.food ? props.food.category._id : ''
-  )
-  const [mainError, errorSetter] = useState('')
-  const [success, successSetter] = useState('')
-  const [titleError, titleErrorSetter] = useState(null)
-  const [descriptionError, descriptionErrorSetter] = useState(null)
-  const [categoryError, categoryErrorSetter] = useState(null)
-  const [addonsModal, addonsModalSetter] = useState(false)
-  const [varitionIndex, varitionIndexSetter] = useState(0)
-  const [stockError, stockErrorSetter] = useState(null)
-  const [variations, variationsSetter] = useState(foodVariations)
+    props.food ? props.food.category._id : ""
+  );
+  const [mainError, errorSetter] = useState("");
+  const [success, successSetter] = useState("");
+  const [titleError, titleErrorSetter] = useState(null);
+  const [descriptionError, descriptionErrorSetter] = useState(null);
+  const [categoryError, categoryErrorSetter] = useState(null);
+  const [addonsModal, addonsModalSetter] = useState(false);
+  const [varitionIndex, varitionIndexSetter] = useState(0);
+  const [stockError, stockErrorSetter] = useState(null);
+  const [variations, variationsSetter] = useState(foodVariations);
 
   const onBlur = (setter, field, state) => {
-    setter(!validateFunc({ [field]: state }, field))
-  }
-  const handleChange = event => {
-    categorySetter(event.target.value)
-  }
-  const filterImage = event => {
-    let images = []
+    setter(!validateFunc({ [field]: state }, field));
+  };
+  const handleChange = (event) => {
+    categorySetter(event.target.value);
+  };
+  const filterImage = (event) => {
+    let images = [];
     for (var i = 0; i < event.target.files.length; i++) {
-      images[i] = event.target.files.item(i)
+      images[i] = event.target.files.item(i);
     }
-    images = images.filter(image => image.name.match(/\.(jpg|jpeg|png|gif)$/))
-    const message = `${images.length} valid image(s) selected`
-    console.log(message)
-    return images.length ? images[0] : undefined
-  }
-  const selectImage = event => {
-    const result = filterImage(event)
+    images = images.filter((image) =>
+      image.name.match(/\.(jpg|jpeg|png|gif)$/)
+    );
+    const message = `${images.length} valid image(s) selected`;
+    console.log(message);
+    return images.length ? images[0] : undefined;
+  };
+  const selectImage = (event) => {
+    const result = filterImage(event);
     if (result) {
-      selectedFileSetter(result)
-      imageToBase64(result)
+      selectedFileSetter(result);
+      imageToBase64(result);
     }
-  }
+  };
 
-  const onAdd = index => {
-    const variation = variations
+  const onAdd = (index) => {
+    const variation = variations;
     if (index === variation.length - 1) {
       variation.push({
-        title: '',
-        price: '',
-        discounted: '',
+        title: "",
+        price: "",
+        discounted: "",
         addons: [],
         titleError: null,
         priceError: null,
-        discountedError: ''
-      })
+        discountedError: "",
+      });
     } else {
       variation.splice(index + 1, 0, {
-        title: '',
-        price: '',
-        discounted: '',
+        title: "",
+        price: "",
+        discounted: "",
         addons: [],
         titleError: null,
         priceError: null,
-        discountedError: ''
-      })
+        discountedError: "",
+      });
     }
-    variationsSetter([...variation])
-  }
-  const onRemove = index => {
+    variationsSetter([...variation]);
+  };
+  const onRemove = (index) => {
     if (variations.length === 1 && index === 0) {
-      return
+      return;
     }
-    var variation = variations
-    variation.splice(index, 1)
-    variationsSetter([...variation])
-  }
+    var variation = variations;
+    variation.splice(index, 1);
+    variationsSetter([...variation]);
+  };
   const handleVariationChange = (event, index, type) => {
-    const variation = variations
+    const variation = variations;
 
-    if (type === 'title') {
+    if (type === "title") {
       variation[index][type] =
         event.target.value.length === 1
           ? event.target.value.toUpperCase()
-          : event.target.value
-      variationsSetter([...variation])
+          : event.target.value;
+      variationsSetter([...variation]);
     } else {
-      variation[index][type] = event.target.value
-      variationsSetter([...variation])
+      variation[index][type] = event.target.value;
+      variationsSetter([...variation]);
     }
-  }
+  };
   const onSubmitValidaiton = () => {
-    const titleError = !validateFunc({ title: title }, 'title')
+    const titleError = !validateFunc({ title: title }, "title");
     const descriptionError = !validateFunc(
       { description: description },
-      'description'
-    )
-    const categoryError = !validateFunc({ category: category }, 'category')
-    const stockError = !validateFunc({ stock: stock }, 'stock')
-    const variation = variations
-    variation.map(variationMap => {
+      "description"
+    );
+    const categoryError = !validateFunc({ category: category }, "category");
+    const stockError = !validateFunc({ stock: stock }, "stock");
+    const variation = variations;
+    variation.map((variationMap) => {
       variationMap.priceError = !validateFunc(
         { price: variationMap.price },
-        'price'
-      )
+        "price"
+      );
       variationMap.discountedError =
-        variationMap.price > variationMap.discounted
-      let error = false
-      const occ = variation.filter(v => v.title === variation.title)
+        variationMap.price > variationMap.discounted;
+      let error = false;
+      const occ = variation.filter((v) => v.title === variation.title);
       if (occ.length > 1) {
-        error = true
+        error = true;
       }
       variationMap.titleError = error
         ? !error
-        : !validateFunc({ title: variationMap.title }, 'title')
+        : !validateFunc({ title: variationMap.title }, "title");
 
-      return variationMap
-    })
+      return variationMap;
+    });
     const variationsError = !variation.filter(
-      variation =>
+      (variation) =>
         !variation.priceError ||
         !variation.titleError ||
         !variation.discountedError
-    ).length
-    titleErrorSetter(titleError)
-    descriptionErrorSetter(descriptionError)
-    categoryErrorSetter(categoryError)
-    variationsSetter([...variation])
-    stockErrorSetter(stockError)
+    ).length;
+    titleErrorSetter(titleError);
+    descriptionErrorSetter(descriptionError);
+    categoryErrorSetter(categoryError);
+    variationsSetter([...variation]);
+    stockErrorSetter(stockError);
     return (
       titleError &&
       descriptionError &&
       categoryError &&
       variationsError &&
       stockError
-    )
-  }
+    );
+  };
   const clearFields = () => {
-    titleSetter('')
-    descriptionSetter('')
-    imgMenuSetter('')
-    selectedFileSetter(null)
-    imageUrlInputSetter('')
+    titleSetter("");
+    descriptionSetter("");
+    imgMenuSetter("");
+    selectedFileSetter(null);
+    imageUrlInputSetter("");
     variationsSetter([
       {
-        title: '',
-        price: '',
-        discounted: '',
+        title: "",
+        price: "",
+        discounted: "",
         addons: [],
         titleError: null,
         priceError: null,
-        discountedError: null
-      }
-    ])
-    stockSetter('')
-    titleErrorSetter(null)
-    descriptionErrorSetter(null)
-    categoryErrorSetter(null)
-    stockErrorSetter(null)
-  }
+        discountedError: null,
+      },
+    ]);
+    stockSetter("");
+    titleErrorSetter(null);
+    descriptionErrorSetter(null);
+    categoryErrorSetter(null);
+    stockErrorSetter(null);
+  };
   const onBlurVariation = (index, type) => {
-    let error = false
-    const variation = variations
-    if (type === 'title') {
-      const occ = variation.filter(v => v.title === variation[index][type])
-      if (occ.length > 1) error = true
+    let error = false;
+    const variation = variations;
+    if (type === "title") {
+      const occ = variation.filter((v) => v.title === variation[index][type]);
+      if (occ.length > 1) error = true;
     } else if (
-      type === 'discounted' &&
-      variation[index].discounted.trim() !== ''
+      type === "discounted" &&
+      variation[index].discounted.trim() !== ""
     ) {
       // variations[index][type + 'Error'] = variations[index].price > variations[index].discounted
     }
-    if (type !== 'discounted') {
-      variation[index][type + 'Error'] = error
+    if (type !== "discounted") {
+      variation[index][type + "Error"] = error
         ? !error
-        : !validateFunc({ [type]: variation[index][type] }, type)
+        : !validateFunc({ [type]: variation[index][type] }, type);
     }
-    variationsSetter([...variation])
-  }
-  const onCompleted = data => {
-    if (!props.food) clearFields()
-    const message = props.food
-      ? 'Food updated successfully'
-      : 'Food added successfully'
-    errorSetter('')
-    successSetter(message)
-  }
-  const updateAddonsList = ids => {
-    const variation = variations
+    variationsSetter([...variation]);
+  };
+  const onCompleted = () => {
+    if (!props.food) clearFields();
+    errorSetter("");
+    successSetter(
+      props.food ? t("Food updated success") : t("Food added success")
+    );
+    if (props.onSaved) {
+      props.onSaved();
+    }
+  };
+  const parseSaveError = (err) => {
+    const raw = formatGraphqlError(err);
+    if (isTransientServerError(raw)) {
+      return t("Server connection error retry");
+    }
+    return raw || t("Food save error");
+  };
+  const onError = (err) => {
+    errorSetter(parseSaveError(err));
+    successSetter("");
+  };
+  const buildFoodInput = (imgUrl) => ({
+    _id: props.food ? props.food._id : "",
+    title: (title || "").trim(),
+    description: (description || title || "").trim(),
+    img_url: imgUrl,
+    category: category,
+    variations: variations.map(function (v) {
+      return {
+        title: (v.title || "Regular").trim(),
+        price: Number(v.price) || 1,
+        discounted: Number(v.discounted) || 0,
+        addons: (v.addons || []).filter(Boolean),
+      };
+    }),
+    stock: Number(stock) || 0,
+  });
+  const saveFoodWithRetry = async (mutateFn) => {
+    const imgUrl = resolveFoodImageUrl(await uploadImageToCloudinary());
+    const variables = { foodInput: buildFoodInput(imgUrl) };
+    await retryAsync(
+      function () {
+        return mutateFn({ variables: variables });
+      },
+      3,
+      2000
+    );
+  };
+  const updateAddonsList = (ids) => {
+    const variation = variations;
     variation[varitionIndex].addons = variation[varitionIndex].addons.concat(
       ids
-    )
-    variationsSetter([...variation])
-  }
-  const onError = err => {
-    const msg =
-      (err &&
-        err.graphQLErrors &&
-        err.graphQLErrors[0] &&
-        err.graphQLErrors[0].message) ||
-      (err && err.message) ||
-      'Error al guardar. Verifica la imagen e intenta de nuevo.'
-    errorSetter(msg)
-    successSetter('')
-  }
-  // show Create Addon modal
-  const toggleModal = index => {
-    varitionIndexSetter(index)
-    addonsModalSetter(prev => !prev)
-  }
+    );
+    variationsSetter([...variation]);
+  };
+  const toggleModal = (index) => {
+    varitionIndexSetter(index);
+    addonsModalSetter((prev) => !prev);
+  };
   const onSelectAddon = (index, id) => {
-    const variation = variations
-    const addon = variation[index].addons.indexOf(id)
+    const variation = variations;
+    const addon = variation[index].addons.indexOf(id);
     if (addon < 0) {
-      variation[index].addons.push(id)
+      variation[index].addons.push(id);
     } else {
-      variation[index].addons.splice(addon, 1)
+      variation[index].addons.splice(addon, 1);
     }
-    variationsSetter([...variation])
-  }
+    variationsSetter([...variation]);
+  };
   const onDismiss = () => {
-    successSetter('')
-    errorSetter('')
-  }
-  const imageToBase64 = imgUrl => {
-    const fileReader = new FileReader()
+    successSetter("");
+    errorSetter("");
+  };
+  const imageToBase64 = (imgUrl) => {
+    const fileReader = new FileReader();
     fileReader.onloadend = () => {
-      imgMenuSetter(fileReader.result)
-    }
-    fileReader.readAsDataURL(imgUrl)
-  }
+      imgMenuSetter(fileReader.result);
+    };
+    fileReader.readAsDataURL(imgUrl);
+  };
   const DEFAULT_FOOD_IMAGE =
-    'https://placehold.co/600x400/f97316/ffffff?text=Comida'
+    "https://placehold.co/600x400/f97316/ffffff?text=Comida";
+
+  const resolveFoodImageUrl = (url) => {
+    const trimmed = url && typeof url === "string" ? url.trim() : "";
+    if (trimmed.startsWith("http")) {
+      return trimmed;
+    }
+    return DEFAULT_FOOD_IMAGE;
+  };
 
   const uploadImageToCloudinary = async () => {
-    const urlFromInput = imageUrlInput.trim()
-    if (urlFromInput.startsWith('http')) {
-      return urlFromInput
+    const urlFromInput = imageUrlInput.trim();
+    if (urlFromInput.startsWith("http")) {
+      return resolveFoodImageUrl(urlFromInput);
     }
 
-    if (props.food && props.food.img_url === imgMenu && imgMenu.startsWith('http')) {
-      return imgMenu
+    if (
+      props.food &&
+      props.food.img_url === imgMenu &&
+      imgMenu &&
+      typeof imgMenu === "string" &&
+      imgMenu.startsWith("http")
+    ) {
+      return resolveFoodImageUrl(imgMenu);
     }
 
     if (selectedFile) {
-      const formData = new FormData()
-      formData.append('file', selectedFile)
-      formData.append('upload_preset', cloudinary_food)
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("upload_preset", cloudinary_food);
       try {
         const result = await fetch(cloudinary_upload_url, {
-          method: 'POST',
-          body: formData
-        })
-        const imageData = await result.json()
+          method: "POST",
+          body: formData,
+        });
+        const imageData = await result.json();
         if (imageData.secure_url) {
-          return imageData.secure_url
+          return resolveFoodImageUrl(imageData.secure_url);
         }
-        console.error('Cloudinary error:', imageData)
+        console.error("Cloudinary error:", imageData);
       } catch (e) {
-        console.error(e)
+        console.error(e);
       }
     }
 
-    if (imgMenu && imgMenu.startsWith('data:')) {
+    if (imgMenu && typeof imgMenu === "string" && imgMenu.startsWith("data:")) {
       const data = {
         file: imgMenu,
-        upload_preset: cloudinary_food
-      }
+        upload_preset: cloudinary_food,
+      };
       try {
         const result = await fetch(cloudinary_upload_url, {
           body: JSON.stringify(data),
-          headers: { 'content-type': 'application/json' },
-          method: 'POST'
-        })
-        const imageData = await result.json()
+          headers: { "content-type": "application/json" },
+          method: "POST",
+        });
+        const imageData = await result.json();
         if (imageData.secure_url) {
-          return imageData.secure_url
+          return resolveFoodImageUrl(imageData.secure_url);
         }
       } catch (e) {
-        console.error(e)
+        console.error(e);
       }
     }
 
-    if (imgMenu.startsWith('http')) {
-      return imgMenu
+    if (imgMenu && typeof imgMenu === "string" && imgMenu.startsWith("http")) {
+      return resolveFoodImageUrl(imgMenu);
     }
 
-    return DEFAULT_FOOD_IMAGE
-  }
-  const { t } = props
+    return DEFAULT_FOOD_IMAGE;
+  };
+  const { t } = props;
   return (
     <>
       <Row>
@@ -376,7 +425,7 @@ function Food(props) {
               <Row className="align-items-center">
                 <Col xs="8">
                   <h3 className="mb-0">
-                    {props.food ? t('Edit Food') : t('Add Food')}
+                    {props.food ? t("Edit Food") : t("Add Food")}
                   </h3>
                 </Col>
               </Row>
@@ -386,8 +435,8 @@ function Food(props) {
                 mutation={mutation[0]}
                 onCompleted={onCompleted}
                 onError={onError}
-                refetchQueries={[{ query: GET_FOODS, variables: { page: 0 } }]}>
-                {(mutate, { loading, error }) => {
+              >
+                {(mutate, { loading }) => {
                   if (loading) {
                     return (
                       <Loader
@@ -398,7 +447,7 @@ function Food(props) {
                         width={100}
                         visible={loading}
                       />
-                    )
+                    );
                   }
                   return (
                     <Form>
@@ -409,29 +458,31 @@ function Food(props) {
                               <Col>
                                 <label
                                   className="form-control-label"
-                                  htmlFor="input-title">
-                                  {t('Title')}
+                                  htmlFor="input-title"
+                                >
+                                  {t("Title")}
                                 </label>
                                 <br />
                                 <FormGroup
                                   className={
                                     titleError === null
-                                      ? ''
+                                      ? ""
                                       : titleError
-                                        ? 'has-success'
-                                        : 'has-danger'
-                                  }>
+                                      ? "has-success"
+                                      : "has-danger"
+                                  }
+                                >
                                   <Input
                                     className="form-control-alternative"
                                     id="input-title"
-                                    placeholder="e.g Breakfast"
+                                    placeholder={t("ph food title")}
                                     type="text"
                                     value={title}
-                                    onChange={event => {
-                                      titleSetter(event.target.value)
+                                    onChange={(event) => {
+                                      titleSetter(event.target.value);
                                     }}
-                                    onBlur={event => {
-                                      onBlur(titleErrorSetter, 'title', title)
+                                    onBlur={(event) => {
+                                      onBlur(titleErrorSetter, "title", title);
                                     }}
                                   />
                                 </FormGroup>
@@ -441,34 +492,36 @@ function Food(props) {
                               <Col>
                                 <label
                                   className="form-control-label"
-                                  htmlFor="input-description">
-                                  {t('Description')}
+                                  htmlFor="input-description"
+                                >
+                                  {t("Description")}
                                 </label>
                                 <br />
                                 <FormGroup
                                   className={
                                     descriptionError === null
-                                      ? ''
+                                      ? ""
                                       : descriptionError
-                                        ? 'has-success'
-                                        : 'has-danger'
-                                  }>
+                                      ? "has-success"
+                                      : "has-danger"
+                                  }
+                                >
                                   <Input
                                     className="form-control-alternative"
                                     id="input-description"
-                                    placeholder="e.g All happiness depends on leisurely breakfast."
+                                    placeholder={t("ph food description")}
                                     minLength="20"
                                     type="textarea"
                                     value={description}
-                                    onChange={event => {
-                                      descriptionSetter(event.target.value)
+                                    onChange={(event) => {
+                                      descriptionSetter(event.target.value);
                                     }}
-                                    onBlur={event => {
+                                    onBlur={(event) => {
                                       onBlur(
                                         descriptionErrorSetter,
-                                        'description',
+                                        "description",
                                         description
-                                      )
+                                      );
                                     }}
                                   />
                                 </FormGroup>
@@ -478,50 +531,54 @@ function Food(props) {
                               <Col>
                                 <label
                                   className="form-control-label"
-                                  htmlFor="input-category">
-                                  {t('Category')}
+                                  htmlFor="input-category"
+                                >
+                                  {t("Category")}
                                 </label>
                                 <Query query={GET_CATEGORIES}>
                                   {({ data, loading, error }) => {
-                                    if (loading) return t('Loading')
-                                    if (error) return t('Error')
+                                    if (loading) return t("Loading");
+                                    if (error) return t("Error");
                                     return (
                                       <FormGroup
                                         className={
                                           categoryError === null
-                                            ? ''
+                                            ? ""
                                             : categoryError
-                                              ? 'has-success'
-                                              : 'has-danger'
-                                        }>
+                                            ? "has-success"
+                                            : "has-danger"
+                                        }
+                                      >
                                         <Input
                                           type="select"
                                           name="select"
                                           id="exampleSelect"
                                           value={category}
                                           onChange={handleChange}
-                                          onBlur={event => {
+                                          onBlur={(event) => {
                                             onBlur(
                                               categoryErrorSetter,
-                                              'category',
+                                              "category",
                                               category
-                                            )
-                                          }}>
+                                            );
+                                          }}
+                                        >
                                           {!category && (
-                                            <option value={''}>
-                                              {t('Select')}
+                                            <option value={""}>
+                                              {t("Select")}
                                             </option>
                                           )}
-                                          {data.categories.map(category => (
+                                          {data.categories.map((category) => (
                                             <option
                                               value={category._id}
-                                              key={category._id}>
+                                              key={category._id}
+                                            >
                                               {category.title}
                                             </option>
                                           ))}
                                         </Input>
                                       </FormGroup>
-                                    )
+                                    );
                                   }}
                                 </Query>
                               </Col>
@@ -530,28 +587,30 @@ function Food(props) {
                               <Col>
                                 <label
                                   className="form-control-label"
-                                  htmlFor="input-stock">
-                                  {t('Stock')}
+                                  htmlFor="input-stock"
+                                >
+                                  {t("Stock")}
                                 </label>
                                 <FormGroup
                                   className={
                                     stockError === null
-                                      ? ''
+                                      ? ""
                                       : stockError
-                                        ? 'has-success'
-                                        : 'has-danger'
-                                  }>
+                                      ? "has-success"
+                                      : "has-danger"
+                                  }
+                                >
                                   <Input
                                     className="form-control-alternative"
                                     id="input-stock"
-                                    placeholder="e.g 9"
+                                    placeholder={t("ph stock")}
                                     type="number"
                                     value={stock}
-                                    onChange={event => {
-                                      stockSetter(event.target.value)
+                                    onChange={(event) => {
+                                      stockSetter(event.target.value);
                                     }}
-                                    onBlur={event => {
-                                      onBlur(stockErrorSetter, 'stock', stock)
+                                    onBlur={(event) => {
+                                      onBlur(stockErrorSetter, "stock", stock);
                                     }}
                                   />
                                 </FormGroup>
@@ -559,13 +618,14 @@ function Food(props) {
                             </Row>
                             <Row>
                               <Col>
-                                <h3 className="mb-0"> {t('Food Image')}</h3>
+                                <h3 className="mb-0"> {t("Food Image")}</h3>
                                 <FormGroup>
                                   <div className="card-title-image">
-                                    {imgMenu && typeof imgMenu === 'string' && (
+                                    {imgMenu && typeof imgMenu === "string" && (
                                       <a
                                         href="#pablo"
-                                        onClick={e => e.preventDefault()}>
+                                        onClick={(e) => e.preventDefault()}
+                                      >
                                         <img
                                           alt="..."
                                           className="rounded-rectangle"
@@ -582,18 +642,20 @@ function Food(props) {
                                     />
                                     <Input
                                       className="mt-2"
-                                      placeholder="O pega URL de imagen (https://...)"
+                                      placeholder={t("ph image url")}
                                       type="url"
                                       value={imageUrlInput}
-                                      onChange={event => {
-                                        imageUrlInputSetter(event.target.value)
-                                        if (event.target.value.startsWith('http')) {
-                                          imgMenuSetter(event.target.value)
+                                      onChange={(event) => {
+                                        imageUrlInputSetter(event.target.value);
+                                        if (
+                                          event.target.value.startsWith("http")
+                                        ) {
+                                          imgMenuSetter(event.target.value);
                                         }
                                       }}
                                     />
                                     <small className="text-muted">
-                                      Sube una imagen JPG/PNG o pega una URL. Es obligatoria para guardar el producto.
+                                      {t("Food image help")}
                                     </small>
                                   </div>
                                 </FormGroup>
@@ -601,18 +663,19 @@ function Food(props) {
                             </Row>
                           </Col>
                           <Col lg="6">
-                            <h3 className="mb-0">{t('Variations')}</h3>
+                            <h3 className="mb-0">{t("Variations")}</h3>
                             <Row>
                               <Col lg="4">
                                 <FormGroup>
                                   <label
                                     className="form-control-label"
-                                    htmlFor="input-type">
-                                    {t('Title')}
+                                    htmlFor="input-type"
+                                  >
+                                    {t("Title")}
                                   </label>
                                   <br />
-                                  <small style={{ color: 'blue' }}>
-                                    Title must be unqiue
+                                  <small style={{ color: "blue" }}>
+                                    {t("Title must be unique")}
                                   </small>
                                 </FormGroup>
                               </Col>
@@ -620,8 +683,9 @@ function Food(props) {
                                 <FormGroup>
                                   <label
                                     className="form-control-label"
-                                    htmlFor="input-price">
-                                    {t('Price')}
+                                    htmlFor="input-price"
+                                  >
+                                    {t("Price")}
                                   </label>
                                 </FormGroup>
                               </Col>
@@ -629,8 +693,9 @@ function Food(props) {
                                 <FormGroup>
                                   <label
                                     className="form-control-label"
-                                    htmlFor="input-price">
-                                    {t('Discounted')}
+                                    htmlFor="input-price"
+                                  >
+                                    {t("Discounted")}
                                   </label>
                                 </FormGroup>
                               </Col>
@@ -643,28 +708,29 @@ function Food(props) {
                                     <FormGroup
                                       className={
                                         variation.titleError === false
-                                          ? 'has-danger'
+                                          ? "has-danger"
                                           : variation.titleError === true
-                                            ? 'has-success'
-                                            : ''
-                                      }>
+                                          ? "has-success"
+                                          : ""
+                                      }
+                                    >
                                       <Input
                                         className="form-control-alternative"
                                         value={variation.title}
                                         id="input-type"
-                                        placeholder="e.g Small"
+                                        placeholder={t("ph variation title")}
                                         type="text"
                                         autoComplete="off"
-                                        onChange={event => {
+                                        onChange={(event) => {
                                           handleVariationChange(
                                             event,
                                             index,
-                                            'title',
-                                            'variations'
-                                          )
+                                            "title",
+                                            "variations"
+                                          );
                                         }}
-                                        onBlur={event => {
-                                          onBlurVariation(index, 'title')
+                                        onBlur={(event) => {
+                                          onBlurVariation(index, "title");
                                         }}
                                       />
                                     </FormGroup>
@@ -673,27 +739,28 @@ function Food(props) {
                                     <FormGroup
                                       className={
                                         variation.priceError === false
-                                          ? 'has-danger'
+                                          ? "has-danger"
                                           : variation.priceError === true
-                                            ? 'has-success'
-                                            : ''
-                                      }>
+                                          ? "has-success"
+                                          : ""
+                                      }
+                                    >
                                       <Input
                                         className="form-control-alternative"
                                         value={variation.price}
                                         id="input-price"
-                                        placeholder="e.g 9.99"
+                                        placeholder={t("ph price")}
                                         type="number"
-                                        onChange={event => {
+                                        onChange={(event) => {
                                           handleVariationChange(
                                             event,
                                             index,
-                                            'price',
-                                            'variations'
-                                          )
+                                            "price",
+                                            "variations"
+                                          );
                                         }}
-                                        onBlur={event => {
-                                          onBlurVariation(index, 'price')
+                                        onBlur={(event) => {
+                                          onBlurVariation(index, "price");
                                         }}
                                       />
                                     </FormGroup>
@@ -702,27 +769,28 @@ function Food(props) {
                                     <FormGroup
                                       className={
                                         variation.discountedError === false
-                                          ? 'has-danger'
+                                          ? "has-danger"
                                           : variation.discountedError === true
-                                            ? 'has-success'
-                                            : ''
-                                      }>
+                                          ? "has-success"
+                                          : ""
+                                      }
+                                    >
                                       <Input
                                         className="form-control-alternative"
                                         value={variation.discounted}
                                         id="input-discounted"
-                                        placeholder="e.g 9.99"
+                                        placeholder={t("ph price")}
                                         type="number"
-                                        onChange={event => {
+                                        onChange={(event) => {
                                           handleVariationChange(
                                             event,
                                             index,
-                                            'discounted',
-                                            'variations'
-                                          )
+                                            "discounted",
+                                            "variations"
+                                          );
                                         }}
-                                        onBlur={event => {
-                                          onBlurVariation(index, 'discounted')
+                                        onBlur={(event) => {
+                                          onBlurVariation(index, "discounted");
                                         }}
                                       />
                                     </FormGroup>
@@ -732,27 +800,31 @@ function Food(props) {
                                   <Col lg="6">
                                     <Button
                                       onClick={() => toggleModal(index)}
-                                      color="warning">
-                                      New Addon
+                                      color="warning"
+                                    >
+                                      {t("New Addon")}
                                     </Button>
                                   </Col>
                                 </Row>
                                 <Row
                                   style={{
-                                    maxHeight: '67vh',
-                                    overflowY: 'scroll'
-                                  }}>
+                                    maxHeight: "67vh",
+                                    overflowY: "scroll",
+                                  }}
+                                >
                                   <Col lg="12">
                                     <Query query={GET_ADDONS}>
                                       {({ loading, error, data }) => {
-                                        if (loading) return 'Loading ...'
-                                        if (error) return 'Error ...'
+                                        if (loading)
+                                          return t("Loading ellipsis");
+                                        if (error) return t("Error ellipsis");
                                         return data.addons.map(
                                           (addon, indexAddon) => (
                                             <FormGroup
                                               key={indexAddon}
                                               check
-                                              className="mb-2">
+                                              className="mb-2"
+                                            >
                                               <Label check>
                                                 <Input
                                                   value={addon._id}
@@ -767,11 +839,17 @@ function Food(props) {
                                                     )
                                                   }
                                                 />
-                                                {`${addon.title} (Description: ${addon.description})(Min: ${addon.quantity_minimum})(Max: ${addon.quantity_maximum})`}
+                                                {t("Addon item detail", {
+                                                  title: addon.title,
+                                                  description:
+                                                    addon.description,
+                                                  min: addon.quantity_minimum,
+                                                  max: addon.quantity_maximum,
+                                                })}
                                               </Label>
                                             </FormGroup>
                                           )
-                                        )
+                                        );
                                       }}
                                     </Query>
                                   </Col>
@@ -782,15 +860,17 @@ function Food(props) {
                                       <Button
                                         color="danger"
                                         onClick={() => {
-                                          onRemove(index)
-                                        }}>
+                                          onRemove(index);
+                                        }}
+                                      >
                                         -
                                       </Button>
                                       <Button
                                         onClick={() => {
-                                          onAdd(index)
+                                          onAdd(index);
                                         }}
-                                        color="primary">
+                                        color="primary"
+                                      >
                                         +
                                       </Button>
                                     </FormGroup>
@@ -807,55 +887,19 @@ function Food(props) {
                               color="primary"
                               href="#pablo"
                               className="btn-block"
-                              onClick={async e => {
-                                e.preventDefault()
+                              onClick={async (e) => {
+                                e.preventDefault();
                                 if (onSubmitValidaiton()) {
                                   try {
-                                    const imgUrl = await uploadImageToCloudinary()
-                                    if (!imgUrl) {
-                                      errorSetter(
-                                        'Debes subir una imagen o pegar una URL válida.'
-                                      )
-                                      return
-                                    }
-                                    mutate({
-                                      variables: {
-                                        foodInput: {
-                                          _id: props.food ? props.food._id : '',
-                                          title: title,
-                                          description: description,
-                                          img_url: imgUrl,
-                                          category: category,
-                                          variations: variations.map(
-                                            ({
-                                              title,
-                                              price,
-                                              discounted,
-                                              addons
-                                            }) => {
-                                              return {
-                                                title,
-                                                price: +price,
-                                                discounted: +discounted,
-                                                addons
-                                              }
-                                            }
-                                          ),
-                                          stock: +stock
-                                        }
-                                      }
-                                    })
+                                    await saveFoodWithRetry(mutate);
                                   } catch (uploadErr) {
-                                    errorSetter(
-                                      uploadErr.message ||
-                                        'Error al subir la imagen'
-                                    )
+                                    errorSetter(parseSaveError(uploadErr));
                                   }
                                 }
-                                successSetter('')
                               }}
-                              size="lg">
-                              {t('Save')}
+                              size="lg"
+                            >
+                              {t("Save")}
                             </Button>
                           </Col>
                         </Row>
@@ -864,31 +908,32 @@ function Food(props) {
                             <Alert
                               color="success"
                               isOpen={!!success}
-                              toggle={onDismiss}>
+                              toggle={onDismiss}
+                            >
                               <span className="alert-inner--icon">
                                 <i className="ni ni-like-2" />
-                              </span>{' '}
+                              </span>{" "}
                               <span className="alert-inner--text">
-                                <strong>{t('Success')}!</strong> {success}
+                                <strong>{t("Success")}!</strong> {success}
                               </span>
                             </Alert>
                             <Alert
                               color="danger"
-                              isOpen={!!mainError || !!error}
-                              toggle={onDismiss}>
+                              isOpen={!!mainError}
+                              toggle={onDismiss}
+                            >
                               <span className="alert-inner--icon">
                                 <i className="ni ni-like-2" />
-                              </span>{' '}
+                              </span>{" "}
                               <span className="alert-inner--text">
-                                <strong>{t('Danger')}!</strong>{' '}
-                                {mainError || (error && error.message)}
+                                <strong>{t("Danger")}!</strong> {mainError}
                               </span>
                             </Alert>
                           </Col>
                         </Row>
                       </div>
                     </Form>
-                  )
+                  );
                 }}
               </Mutation>
             </CardBody>
@@ -900,11 +945,12 @@ function Food(props) {
         size="lg"
         isOpen={addonsModal}
         toggle={() => {
-          toggleModal()
-        }}>
+          toggleModal();
+        }}
+      >
         <AddonComponent updateAddonsList={updateAddonsList} />
       </Modal>
     </>
-  )
+  );
 }
-export default withTranslation()(Food)
+export default withTranslation()(Food);

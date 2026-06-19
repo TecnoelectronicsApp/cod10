@@ -1,6 +1,6 @@
-import React from 'react'
-import { withTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import React from "react";
+import { withTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 // reactstrap components
 import {
   UncontrolledCollapse,
@@ -11,16 +11,12 @@ import {
   Container,
   Row,
   Col,
-  FormGroup,
-  Input
-} from 'reactstrap'
+} from "reactstrap";
+
+import LanguageSelector from "../LanguageSelector";
 
 function AdminNavbar(props) {
-  const handleChange = event => {
-    localStorage.setItem('enatega-language', event.target.value)
-    props.i18n.changeLanguage(event.target.value)
-  }
-  const { t } = props
+  const { t } = props;
   return (
     <>
       <Navbar className="navbar-top navbar-horizontal navbar-dark" expand="md">
@@ -43,31 +39,17 @@ function AdminNavbar(props) {
               <NavItem>
                 <NavLink className="nav-link-icon" to="/" tag={Link}>
                   <i className="ni ni-planet" />
-                  <span className="nav-link-inner--text">{t('Dashboard')}</span>
+                  <span className="nav-link-inner--text">{t("Dashboard")}</span>
                 </NavLink>
               </NavItem>
               <NavItem>
-                <FormGroup>
-                  <Input
-                    type="select"
-                    name="select"
-                    defaultValue={localStorage.getItem('enatega-language')}
-                    id="exampleSelect"
-                    onChange={handleChange}
-                    onBlur={event => {}}>
-                    <option value="en">English</option>
-                    <option value="de">Deutsche</option>
-                    <option value="zh">中文</option>
-                    <option value="km">ភាសាខ្មែរ</option>
-                    <option value="fr">français</option>
-                  </Input>
-                </FormGroup>
+                <LanguageSelector />
               </NavItem>
             </Nav>
           </UncontrolledCollapse>
         </Container>
       </Navbar>
     </>
-  )
+  );
 }
-export default withTranslation()(AdminNavbar)
+export default withTranslation()(AdminNavbar);
