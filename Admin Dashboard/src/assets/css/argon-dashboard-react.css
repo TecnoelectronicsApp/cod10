@@ -10758,7 +10758,7 @@ textarea[resize="horizontal"] {
     font-size: 2.25rem; }
   .icon + .icon-text {
     padding-left: 1rem;
-    width: calc(100% - 3rem - 1); }
+    width: calc(100% - 3rem - 1px); }
 
 .icon-xl {
   width: 5rem;
@@ -10766,7 +10766,7 @@ textarea[resize="horizontal"] {
   .icon-xl i, .icon-xl svg {
     font-size: 4.25rem; }
   .icon-xl + .icon-text {
-    width: calc(100% - $icon-size-xl - 1); }
+    width: calc(100% - 5rem - 1px); }
 
 .icon-lg {
   width: 4rem;
@@ -10774,7 +10774,7 @@ textarea[resize="horizontal"] {
   .icon-lg i, .icon-lg svg {
     font-size: 3.25rem; }
   .icon-lg + .icon-text {
-    width: calc(100% - $icon-size-lg - 1); }
+    width: calc(100% - 4rem - 1px); }
 
 .icon-sm {
   width: 2rem;
@@ -10782,7 +10782,7 @@ textarea[resize="horizontal"] {
   .icon-sm i, .icon-sm svg {
     font-size: 1.25rem; }
   .icon-sm + .icon-text {
-    width: calc(100% - $icon-size-sm - 1); }
+    width: calc(100% - 2rem - 1px); }
 
 .icon-shape {
   padding: 12px;

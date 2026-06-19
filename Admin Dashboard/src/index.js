@@ -13,7 +13,7 @@ import * as firebase from 'firebase/app'
 import 'firebase/messaging'
 import 'assets/vendor/nucleo/css/nucleo.css'
 import 'assets/vendor/@fortawesome/fontawesome-free/css/all.min.css'
-import 'assets/scss/argon-dashboard-react.scss'
+import 'assets/css/argon-dashboard-react.css'
 import { getOrders, uploadToken } from '../src/apollo/server'
 
 import { ws_server_url, server_url } from './config/config'

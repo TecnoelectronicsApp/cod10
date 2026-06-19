@@ -6,3 +6,4 @@ node_modules/
 !.env.example
 google-service-account.json
 *.pem
+.vercel
