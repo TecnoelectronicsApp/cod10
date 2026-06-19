@@ -16,8 +16,8 @@
       "label": "Pagomóvil",
       "bankCode": "0102",
       "bankName": "Banco de Venezuela",
-      "phone": "04120000000",
-      "ci": "V00000000"
+      "phone": "04267333600",
+      "ci": "V16218465"
     },
     {
       "id": "binance",
@@ -25,5 +25,12 @@
       "label": "Binance",
       "payId": ""
     }
-  ]
+  ],
+  "multiCurrency": {
+    "enabled": true,
+    "exchangeRate": 607.39,
+    "secondarySymbol": "Bs.",
+    "rateDate": "2026-06-19T00:00:00-04:00",
+    "rateFetchedAt": "2026-06-19T12:00:00.000Z"
+  }
 }

@@ -12,31 +12,33 @@ import {
   Alert,
 } from "reactstrap";
 import {
-  getPaymentMethodsConfig,
   syncPaymentMethodsToServer,
   defaultPaymentMethodsConfig,
   VENEZUELAN_BANKS,
-  fetchStoreConfigRemote,
+  loadPaymentMethodsConfig,
+  STORE_CONFIG_CLOUDINARY_URL,
 } from "../../../utils/paymentMethods";
 
 function PaymentMethods(props) {
   const { t } = props;
   const [methods, methodsSetter] = useState(
-    getPaymentMethodsConfig().paymentMethods
+    defaultPaymentMethodsConfig.paymentMethods
   );
   const [saved, savedSetter] = useState(false);
+  const [cloudinaryOk, cloudinaryOkSetter] = useState(false);
   const [remoteOk, remoteOkSetter] = useState(false);
   const [error, errorSetter] = useState("");
+  const [loading, loadingSetter] = useState(true);
 
   useEffect(function () {
-    fetchStoreConfigRemote()
-      .then(function (data) {
-        if (data && data.paymentMethods) {
-          methodsSetter(data.paymentMethods);
+    loadPaymentMethodsConfig()
+      .then(function (list) {
+        if (list && list.length) {
+          methodsSetter(list);
         }
       })
-      .catch(function () {
-        /* usa local */
+      .finally(function () {
+        loadingSetter(false);
       });
   }, []);
 
@@ -58,13 +60,20 @@ function PaymentMethods(props) {
     const config = { paymentMethods: methods };
     const result = await syncPaymentMethodsToServer(config);
     savedSetter(true);
+    cloudinaryOkSetter(result.cloudinary);
     remoteOkSetter(result.remote);
-    if (!result.remote && result.error) {
-      errorSetter(result.error);
+    if (!result.ok) {
+      errorSetter(
+        result.cloudinaryError ||
+          result.remoteError ||
+          t("Payment Methods save failed")
+      );
+    } else if (!result.cloudinary) {
+      errorSetter(result.cloudinaryError || t("Payment Methods local only"));
     }
     setTimeout(function () {
       savedSetter(false);
-    }, 4000);
+    }, 5000);
   };
 
   const resetDefaults = () => {
@@ -80,9 +89,17 @@ function PaymentMethods(props) {
             <small className="text-muted d-block">
               {t("Payment Methods help")}
             </small>
+            <small className="text-muted d-block">
+              Cliente: {STORE_CONFIG_CLOUDINARY_URL}
+            </small>
           </CardHeader>
           <Form onSubmit={handleSave}>
             <div className="pl-lg-4 pb-4">
+              {loading && (
+                <Alert color="info" className="mb-3">
+                  {t("Loading")}…
+                </Alert>
+              )}
               {methods.map(function (method, index) {
                 return (
                   <Card key={method.id} className="mb-3 p-3 bg-secondary">
@@ -186,15 +203,21 @@ function PaymentMethods(props) {
                 </Col>
               </Row>
 
-              {saved && (
+              {saved && cloudinaryOk && (
                 <Alert color="success" className="mt-3 mb-0">
-                  {t("Success")}! {t("Payment Methods saved")}
-                  {remoteOk && " — " + t("Synced to client API")}
+                  {t("Success")}! {t("Payment Methods saved")} —{" "}
+                  {t("Synced to client Cloudinary")}
+                  {remoteOk && " + " + t("Synced to client API")}
                 </Alert>
               )}
-              {error && (
+              {saved && !cloudinaryOk && (
                 <Alert color="warning" className="mt-3 mb-0">
-                  {error}. {t("Payment Methods local only")}
+                  {t("Payment Methods local only")}. {error}
+                </Alert>
+              )}
+              {!saved && error && (
+                <Alert color="warning" className="mt-3 mb-0">
+                  {error}
                 </Alert>
               )}
             </div>

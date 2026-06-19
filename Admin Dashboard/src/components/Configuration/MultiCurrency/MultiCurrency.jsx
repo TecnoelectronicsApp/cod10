@@ -12,13 +12,17 @@ import {
   Alert,
   Spinner,
 } from "reactstrap";
-import { bcv_api_url } from "../../../config/config";
+import { getBcvApiBase } from "../../../config/config";
 import {
   getMultiCurrencyConfig,
   saveMultiCurrencyConfig,
   defaultMultiCurrencyConfig,
 } from "../../../utils/multiCurrency";
 import { refreshBcvExchangeRate } from "../../../utils/bcvRate";
+import {
+  buildFullStoreConfig,
+  uploadStoreConfigToCloudinary,
+} from "../../../utils/paymentMethods";
 
 function MultiCurrency(props) {
   const stored = getMultiCurrencyConfig();
@@ -58,7 +62,16 @@ function MultiCurrency(props) {
       rateDateSetter(bcv.rateDate || "");
       rateFetchedAtSetter(bcv.fetchedAt);
     } catch (e) {
-      fetchErrorSetter(e.message || t("BCV fetch error"));
+      const config = getMultiCurrencyConfig();
+      if (config.exchangeRate > 0) {
+        fetchErrorSetter(
+          (e.message || t("BCV fetch error")) +
+            ". Usando última tasa válida: " +
+            config.exchangeRate
+        );
+      } else {
+        fetchErrorSetter(e.message || t("BCV fetch error"));
+      }
     } finally {
       loadingSetter(false);
     }
@@ -70,13 +83,13 @@ function MultiCurrency(props) {
     }
   }, []);
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     const rate = parseFloat(exchangeRate);
     if (isNaN(rate) || rate <= 0) {
       return;
     }
-    saveMultiCurrencyConfig({
+    const multiPayload = {
       enabled: enabled,
       autoBcv: autoBcv,
       primaryCode: primaryCode,
@@ -87,7 +100,15 @@ function MultiCurrency(props) {
       rateSource: autoBcv ? "bcv" : "manual",
       rateDate: rateDate,
       rateFetchedAt: rateFetchedAt,
-    });
+    };
+    saveMultiCurrencyConfig(multiPayload);
+    try {
+      await uploadStoreConfigToCloudinary(
+        buildFullStoreConfig(null, multiPayload)
+      );
+    } catch (syncErr) {
+      console.warn("No se pudo publicar multimoneda en Cloudinary", syncErr);
+    }
     savedSetter(true);
     setTimeout(function () {
       savedSetter(false);
@@ -95,7 +116,7 @@ function MultiCurrency(props) {
   };
 
   const sample = (10 * parseFloat(exchangeRate || 0)).toFixed(2);
-  const apiBase = (bcv_api_url || "http://localhost:8000").replace(/\/$/, "");
+  const apiBase = getBcvApiBase() || "No configurada";
 
   return (
     <Row className="mt-3">

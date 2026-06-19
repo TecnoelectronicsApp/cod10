@@ -1,0 +1,88 @@
+{
+  "updatedAt": "2026-06-18",
+  "configuration": {
+    "currency": "USD",
+    "currency_symbol": "$",
+    "delivery_charges": 3
+  },
+  "categories": [
+    { "_id": "fb-hamburguesas", "title": "Hamburguesas", "description": "Las mejores hamburguesas" },
+    { "_id": "fb-bebidas", "title": "Bebidas", "description": "Refrescos y jugos" },
+    { "_id": "fb-sopas", "title": "Sopas", "description": "Sopas caseras" },
+    { "_id": "fb-salchipapas", "title": "Salchipapas", "description": "Salchipapas y combos" }
+  ],
+  "foodsByCategory": {
+    "fb-hamburguesas": [
+      {
+        "_id": "fb-10-1",
+        "title": "10-1 Parrillera con Papas fritas",
+        "description": "🍔 Parrillera clásica",
+        "img_url": "https://placehold.co/600x400/f97316/ffffff?text=10-1",
+        "stock": 100,
+        "variations": [{ "_id": "fb-v-10-1", "title": "Regular", "price": 6, "discounted": 0 }]
+      },
+      {
+        "_id": "fb-10-2",
+        "title": "10-2 Pollo Crispy con Papas fritas",
+        "description": "🍗 Pollo crispy",
+        "img_url": "https://placehold.co/600x400/f97316/ffffff?text=10-2",
+        "stock": 100,
+        "variations": [{ "_id": "fb-v-10-2", "title": "Regular", "price": 6, "discounted": 0 }]
+      },
+      {
+        "_id": "fb-10-3",
+        "title": "10-3 Doble Pollo Crispy con Papas fritas",
+        "description": "🍗🍗 Doble crispy",
+        "img_url": "https://placehold.co/600x400/f97316/ffffff?text=10-3",
+        "stock": 100,
+        "variations": [{ "_id": "fb-v-10-3", "title": "Regular", "price": 8, "discounted": 0 }]
+      },
+      {
+        "_id": "fb-10-10",
+        "title": "10-10 Big Brasa + Papas Fritas + Refresco 330Ml",
+        "description": "🔥 Combo Big Brasa",
+        "img_url": "https://placehold.co/600x400/f97316/ffffff?text=10-10",
+        "stock": 100,
+        "variations": [{ "_id": "fb-v-10-10", "title": "Regular", "price": 11, "discounted": 0 }]
+      }
+    ],
+    "fb-bebidas": [
+      {
+        "_id": "fb-refresco",
+        "title": "Refresco 330ml",
+        "description": "🥤 Bebida fría",
+        "img_url": "https://placehold.co/600x400/f97316/ffffff?text=Refresco",
+        "stock": 100,
+        "variations": [{ "_id": "fb-v-refresco", "title": "Regular", "price": 2, "discounted": 0 }]
+      },
+      {
+        "_id": "fb-jugo",
+        "title": "Jugo natural",
+        "description": "🍊 Jugo del día",
+        "img_url": "https://placehold.co/600x400/f97316/ffffff?text=Jugo",
+        "stock": 100,
+        "variations": [{ "_id": "fb-v-jugo", "title": "Regular", "price": 3, "discounted": 0 }]
+      }
+    ],
+    "fb-sopas": [
+      {
+        "_id": "fb-sopa",
+        "title": "Sopa del día",
+        "description": "🍲 Sopa casera",
+        "img_url": "https://placehold.co/600x400/f97316/ffffff?text=Sopa",
+        "stock": 100,
+        "variations": [{ "_id": "fb-v-sopa", "title": "Regular", "price": 5, "discounted": 0 }]
+      }
+    ],
+    "fb-salchipapas": [
+      {
+        "_id": "fb-salchipapas",
+        "title": "Salchipapas clásica",
+        "description": "🌭 Salchipapas",
+        "img_url": "https://placehold.co/600x400/f97316/ffffff?text=Salchipapas",
+        "stock": 100,
+        "variations": [{ "_id": "fb-v-salchipapas", "title": "Regular", "price": 7, "discounted": 0 }]
+      }
+    ]
+  }
+}

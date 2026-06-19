@@ -82,7 +82,7 @@ export default function FoodModal({
         onClick={(e) => e.stopPropagation()}
       >
         {food.img_url && (
-          <img src={food.img_url} alt={food.title} className="h-48 w-full object-cover" />
+          <img src={food.img_url} alt={food.title} className="h-96 w-full object-cover" />
         )}
         <div className="p-5">
           <h2 className="text-xl font-bold text-gray-900">{food.title}</h2>

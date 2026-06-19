@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Codigo 10 — comida rapida de verdad',
-  description: 'Codigo 10 — comida rapida de verdad. Pide online y recibe en casa.',
+  description: 'Codigo 10 — Comida rapida de verdad. Pide online y recibe en casa.',
   icons: { icon: '/codigo10.png' },
 };
 

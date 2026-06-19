@@ -172,13 +172,16 @@ const es = {
     "Food updated success": "Producto actualizado correctamente",
     "Server connection error retry":
       "Error temporal del servidor. Reintentando automáticamente… Si persiste, espera 30 segundos e intenta de nuevo.",
+    Retry: "Reintentar",
     "Payment Methods": "Métodos de pago",
     "Payment Methods help":
-      "Configura cómo puede pagar el cliente. Los datos se sincronizan con la app web vía API BCV.",
+      "Configura cómo puede pagar el cliente. Al guardar se publica en Cloudinary para que lo vea cod10.vercel.app.",
     "Payment Methods saved": "Métodos de pago guardados",
     "Payment Methods local only":
       "Guardado solo en este navegador. Despliega la API BCV o actualiza cod10-store-config.json",
     "Synced to client API": "Sincronizado con la app cliente",
+    "Synced to client Cloudinary": "Publicado para el cliente (Cloudinary)",
+    "Payment Methods save failed": "No se pudo publicar la configuración",
     "Bank code": "Código del banco",
     "ID number": "Cédula / RIF",
     "Binance pay ID": "ID de pago Binance",

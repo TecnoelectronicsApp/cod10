@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { fetchBcvRate, getCachedBcvRate, BcvRate } from '@/lib/bcv-rate';
+import { fetchBcvRate, getLastKnownBcvRate, BcvRate } from '@/lib/bcv-rate';
 
 export function useBcvRate() {
-  const [rate, setRate] = useState<number | null>(() => getCachedBcvRate()?.rate ?? null);
-  const [rateDate, setRateDate] = useState<string | null>(() => getCachedBcvRate()?.rateDate ?? null);
-  const [loading, setLoading] = useState(!getCachedBcvRate());
+  const [rate, setRate] = useState<number | null>(() => getLastKnownBcvRate()?.rate ?? null);
+  const [rateDate, setRateDate] = useState<string | null>(() => getLastKnownBcvRate()?.rateDate ?? null);
+  const [loading, setLoading] = useState(!getLastKnownBcvRate());
 
   useEffect(() => {
     let cancelled = false;
@@ -18,7 +18,11 @@ export function useBcvRate() {
         }
       })
       .catch(() => {
-        /* mantiene caché o null */
+        const last = getLastKnownBcvRate();
+        if (!cancelled && last) {
+          setRate(last.rate);
+          setRateDate(last.rateDate || null);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

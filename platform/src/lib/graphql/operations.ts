@@ -29,6 +29,28 @@ export const LOGIN = gql`
   }
 `;
 
+export const LOGIN_SOCIAL = gql`
+  mutation LoginSocial(
+    $email: String
+    $password: String
+    $type: String!
+    $name: String
+    $facebookId: String
+    $appleId: String
+  ) {
+    login(
+      email: $email
+      password: $password
+      type: $type
+      name: $name
+      facebookId: $facebookId
+      appleId: $appleId
+    ) {
+      userId token name email phone is_active
+    }
+  }
+`;
+
 export const CREATE_USER = gql`
   mutation CreateUser($email: String!, $password: String!, $name: String!, $phone: String!) {
     createUser(userInput: { email: $email, password: $password, name: $name, phone: $phone }) {

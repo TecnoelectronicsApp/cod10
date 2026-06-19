@@ -24,6 +24,16 @@ export function formatGraphqlError(err) {
   return messages.join(" ");
 }
 
+export function userFriendlyGraphqlMessage(message, t) {
+  const msg = (message || "").replace(/^GraphQL error:\s*/i, "");
+  if (isTransientServerError(msg)) {
+    return t
+      ? t("Server connection error retry")
+      : "Error temporal del servidor. Reintentando…";
+  }
+  return msg;
+}
+
 export function isTransientServerError(message) {
   if (!message) return false;
   const lower = message.toLowerCase();

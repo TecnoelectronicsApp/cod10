@@ -10,10 +10,11 @@
     "NODE_PATH": "./src",
     "SKIP_PREFLIGHT_CHECK": "true",
     "REACT_APP_CLOUDINARY_UPLOAD_URL": "https://api.cloudinary.com/v1_1/dimjm4ald/image/upload",
-    "REACT_APP_SERVER_URL": "https://enatega-singlevendor.up.railway.app/",
-    "REACT_APP_WS_SERVER_URL": "wss://enatega-singlevendor.up.railway.app/",
+    "REACT_APP_SERVER_URL": "https://cod10-graphql.onrender.com/",
+    "REACT_APP_WS_SERVER_URL": "wss://cod10-graphql.onrender.com/",
     "REACT_APP_CLOUDINARY_CATEGORY": "hmtkg7s5",
     "REACT_APP_CLOUDINARY_FOOD": "wdgvyas8",
+    "REACT_APP_STORE_CONFIG_URL": "https://res.cloudinary.com/dimjm4ald/raw/upload/food/cod10/store-config-v3.json",
     "REACT_APP_ENV": "prod"
   }
 }

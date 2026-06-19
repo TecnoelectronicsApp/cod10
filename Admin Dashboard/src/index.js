@@ -14,7 +14,7 @@ import "firebase/messaging";
 import "assets/vendor/nucleo/css/nucleo.css";
 import "assets/vendor/@fortawesome/fontawesome-free/css/all.min.css";
 import "assets/css/argon-dashboard-react.css";
-import { getOrders, uploadToken } from "../src/apollo/server";
+import { getOrders } from "../src/apollo/server";
 
 import { ws_server_url, server_url } from "./config/config";
 import "./i18n";
@@ -25,9 +25,6 @@ import { APP_NAME } from "./config/branding";
 ensureBcvRateFresh();
 const GET_ORDERS = gql`
   ${getOrders}
-`;
-const UPLOAD_TOKEN = gql`
-  ${uploadToken}
 `;
 
 const firebaseConfig = {
@@ -106,26 +103,6 @@ const messaging = firebase.messaging();
 messaging.usePublicVapidKey(
   "BBFzJyX1yDzhRcnK07MEBYKqI5muEFTwnxPwg94IdPTAbFi1KstIQVeyuvWAo3-5LH_oBsfivWns53iMXEuS6Lg"
 );
-messaging
-  .requestPermission()
-  .then(function () {
-    messaging
-      .getToken()
-      .then(function (currentToken) {
-        if (currentToken) {
-          client
-            .mutate({
-              mutation: UPLOAD_TOKEN,
-              variables: { pushToken: currentToken },
-            })
-            .then(() => {})
-            .catch(() => {});
-        } else {
-        }
-      })
-      .catch(function () {});
-  })
-  .catch(function () {});
 
 messaging.onMessage(function (payload) {
   var notificationTitle = "Nuevo pedido — " + APP_NAME;

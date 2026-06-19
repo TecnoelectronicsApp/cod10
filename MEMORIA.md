@@ -20,9 +20,10 @@ Sistema de delivery food single-vendor basado en **Enatega**. Tres apps legacy +
 | App cliente móvil | `CustomerApp/` | Expo 47 | EAS (no Vercel) |
 | App repartidor móvil | `RiderApp/` | Expo 47 | EAS (no Vercel) |
 
-**Backend:** NO incluido en el repo. API GraphQL demo compartida:
-- HTTP: `https://enatega-singlevendor.up.railway.app/graphql`
-- WS: `wss://enatega-singlevendor.up.railway.app/graphql`
+**Backend:** API propia **`services/cod10-api/`** (GraphQL + MongoDB, 100% libre). La demo Enatega ya no es necesaria.
+
+- API local: `http://localhost:4000/graphql`
+- Demo legacy (inestable): `https://enatega-singlevendor.up.railway.app/graphql`
 
 ---
 
@@ -93,6 +94,19 @@ npm run start:dev
 
 ## 5. Historial de cambios (cronológico)
 
+### 2026-06-19 — Bot WhatsApp + Gemini + OpenWA (integración MongoDB)
+
+- **Platform API routes** (`platform/src/app/api/bot/`):
+  - `GET /api/bot/catalog` — productos desde MongoDB vía GraphQL Enatega + Pagomóvil/BCV
+  - `GET /api/bot/context` — contexto texto para Gemini
+  - `POST /api/bot/webhook` — webhook OpenWA → Gemini → respuesta WhatsApp
+  - `GET /api/bot/health` — health check
+- **Lib bot:** `platform/src/lib/bot/` (graphql, catalog, gemini, openwa)
+- **Fuente de datos:** misma API GraphQL Railway + BCV API (`/store-config`, `/usd`) — sin PostgreSQL duplicado
+- **OpenWA:** plugin `cod10-gemini` en repo OpenWA lee `/api/bot/catalog` de cod10.vercel.app
+- **Script webhook:** `scripts/setup-openwa-webhook.mjs`
+- **Vars Vercel platform:** `GEMINI_API_KEY`, `OPENWA_*`, `BOT_API_KEY`, `WEBHOOK_SECRET`
+
 ### 2026-06-19 — Multimoneda BCV + métodos de pago + checkout
 
 - **Platform:** precios `$6.00 / Bs.XXX` con tasa BCV automática (caché 1h)
@@ -143,7 +157,10 @@ npm run start:dev
 - Integración con [bcv-usd-api](https://github.com/alfredoiagarc/bcv-usd-api) en `services/bcv-usd-api/`
 - Admin consulta `GET /usd/simple` al iniciar y cada hora (caché localStorage)
 - Variable `REACT_APP_BCV_API_URL` (local: `http://localhost:8000`)
-- Comando: `npm run dev:bcv-api` (Python/FastAPI, puerto 8000)
+- Comando: `# API propia Codigo 10 (reemplaza demo Enatega)
+npm run install:api
+npm run dev:api
+npm run seed:api` (Python/FastAPI, puerto 8000)
 - Desplegar `services/bcv-usd-api` en Railway y apuntar la variable en Vercel admin
 
 ### 2026-06-19 — Español, multimoneda USD/VES y fix dev Windows
@@ -215,6 +232,8 @@ food-delivery-singlevendor/
 ├── platform/                  ← Next.js web app
 │   ├── src/app/               ← rutas: /, /kitchen, /rider, /cart, etc.
 │   ├── src/lib/graphql/       ← operaciones GraphQL
+│   ├── src/lib/bot/           ← bot WhatsApp (GraphQL + Gemini + OpenWA)
+│   ├── src/app/api/bot/       ← API routes bot para Vercel
 │   └── .env.local             ← vars locales (no commitear)
 ├── Admin Dashboard/           ← panel admin CRA
 │   ├── src/views/             ← pantallas
@@ -229,7 +248,9 @@ food-delivery-singlevendor/
 
 ## 8. Pendientes / roadmap
 
-- [ ] Backend propio (MongoDB + GraphQL) para control total y eliminar usuarios
+- [x] Backend propio `services/cod10-api` (GraphQL + MongoDB, libre)
+- [ ] Desplegar cod10-api + MongoDB en servidor del cliente
+- [ ] Configurar vars bot en Vercel (`GEMINI_API_KEY`, `OPENWA_*`) y registrar webhook OpenWA
 - [ ] Conectar `cod10-admin` a GitHub con root `Admin Dashboard`
 - [ ] Actualizar Cloudinary upload_preset si falla subida de imágenes en producción
 - [ ] Apps móviles: build EAS y publicación stores

@@ -89,11 +89,13 @@ function CheckoutContent() {
       await placeOrder({
         variables: {
           orderInput,
-          paymentMethod: buildPaymentMethodLabel(method),
+          paymentMethod: 'COD',
           address: {
             label: addr.label || 'Casa',
             delivery_address: addr.delivery_address,
-            details: addr.details || '',
+            details: [addr.details, `Pago: ${buildPaymentMethodLabel(method)}`]
+              .filter(Boolean)
+              .join(' | '),
             latitude: String(addr.latitude || '0'),
             longitude: String(addr.longitude || '0'),
           },
@@ -102,7 +104,12 @@ function CheckoutContent() {
       clearCart();
       router.push('/orders');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear el pedido');
+      const msg = err instanceof Error ? err.message : 'Error al crear el pedido';
+      setError(
+        msg === 'Invalid Payment Method'
+          ? 'Método de pago no válido para el servidor. Intenta de nuevo.'
+          : msg
+      );
     }
   };
 

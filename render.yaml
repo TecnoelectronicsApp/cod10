@@ -1,0 +1,25 @@
+# Blueprint Render — API GraphQL Codigo 10
+# https://dashboard.render.com/blueprints → New Blueprint Instance → conectar repo GitHub
+
+services:
+  - type: web
+    name: cod10-graphql
+    runtime: node
+    rootDir: services/cod10-api
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_EMAIL
+        value: admin@codigo10.com
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: CORS_ORIGINS
+        value: https://cod10.vercel.app,https://cod10-admin.vercel.app,http://localhost:3000,http://localhost:3006

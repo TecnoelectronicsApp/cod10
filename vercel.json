@@ -3,7 +3,8 @@
   "version": 2,
   "framework": "nextjs",
   "env": {
-    "NEXT_PUBLIC_GRAPHQL_URL": "https://enatega-singlevendor.up.railway.app/graphql",
-    "NEXT_PUBLIC_WS_GRAPHQL_URL": "wss://enatega-singlevendor.up.railway.app/graphql"
+    "NEXT_PUBLIC_GRAPHQL_URL": "https://cod10-graphql.onrender.com/graphql",
+    "NEXT_PUBLIC_WS_GRAPHQL_URL": "wss://cod10-graphql.onrender.com/graphql",
+    "NEXT_PUBLIC_STORE_CONFIG_URL": "https://res.cloudinary.com/dimjm4ald/raw/upload/food/cod10/store-config-v3.json"
   }
 }

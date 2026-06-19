@@ -1,0 +1,14 @@
+# MongoDB local para desarrollo — cod10-api
+# Uso: docker compose up -d
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - cod10_mongo_data:/data/db
+
+volumes:
+  cod10_mongo_data:
