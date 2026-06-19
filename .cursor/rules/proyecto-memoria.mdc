@@ -1,0 +1,45 @@
+---
+description: Memoria obligatoria del proyecto y preferencia de desarrollo local antes de Vercel
+alwaysApply: true
+---
+
+# Regla estricta — Memoria y flujo de trabajo
+
+## 1. Lectura obligatoria (PRIMERO, siempre)
+
+Antes de responder, planificar o modificar **cualquier** archivo:
+
+1. Leer **`MEMORIA.md`** en la raíz del repositorio
+2. Usar su contenido como fuente de verdad: URLs, estructura, historial, limitaciones del API, decisiones técnicas
+
+Si `MEMORIA.md` contradice suposiciones previas, **prevalece MEMORIA.md**.
+
+## 2. Desarrollo local antes de Vercel
+
+**No desplegar en Vercel** salvo que el usuario lo pida explícitamente.
+
+Flujo obligatorio:
+1. Implementar cambios
+2. Probar en local con los scripts de `package.json` raíz:
+   - `npm run dev:platform` → http://localhost:3000
+   - `npm run dev:admin` → http://localhost:3006
+3. Verificar build local si aplica: `npm run build:platform` / `npm run build:admin`
+4. Solo entonces deploy Vercel (si el usuario lo solicita)
+
+Motivo: los builds en Vercel tardan varios minutos; el usuario prefiere validar todo en CLI/local.
+
+## 3. Actualizar la memoria
+
+Tras cada cambio relevante, **actualizar `MEMORIA.md`**:
+- Sección 5 (historial de cambios) con fecha y resumen
+- Sección 6–8 si hay nuevas decisiones, archivos clave o pendientes
+
+Un solo archivo de memoria: **`MEMORIA.md`**. No crear otros archivos de changelog salvo que el usuario lo pida.
+
+## 4. Recordatorios del proyecto
+
+- Backend GraphQL es **externo** (Railway demo); no está en el repo
+- Admin: **sin optional chaining** (`?.`); usar `npm install --legacy-peer-deps`
+- API demo **no permite eliminar usuarios** (`deleteUser` no existe)
+- Productos requieren **`img_url`** válido al guardar
+- Responder siempre **en español**

@@ -1,0 +1,14 @@
+{
+  "name": "food-delivery-singlevendor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monorepo scripts — ver MEMORIA.md",
+  "scripts": {
+    "dev:platform": "cd platform && npm run dev",
+    "dev:admin": "cd \"Admin Dashboard\" && npm run start:dev",
+    "build:platform": "cd platform && npm run build",
+    "build:admin": "cd \"Admin Dashboard\" && npm run build",
+    "install:all": "cd platform && npm install && cd \"../Admin Dashboard\" && npm install --legacy-peer-deps",
+    "memoria": "type MEMORIA.md"
+  }
+}
