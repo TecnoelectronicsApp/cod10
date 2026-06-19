@@ -74,8 +74,11 @@ function UserForm(props) {
 
   const onError = err => {
     const msg =
-      err?.graphQLErrors?.[0]?.message ||
-      err?.message ||
+      (err &&
+        err.graphQLErrors &&
+        err.graphQLErrors[0] &&
+        err.graphQLErrors[0].message) ||
+      (err && err.message) ||
       'No se pudo crear el usuario'
     setMainError(msg)
     setSuccess('')

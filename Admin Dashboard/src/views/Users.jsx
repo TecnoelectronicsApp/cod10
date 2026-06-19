@@ -10,7 +10,7 @@ import gql from 'graphql-tag'
 import { getUsers } from '../apollo/server'
 import { transformToNewline } from '../utils/stringManipulations'
 import DataTable from 'react-data-table-component'
-import orderBy from 'lodash/orderby'
+import orderBy from 'lodash.orderby'
 
 const GET_USERS = gql`
   ${getUsers}
@@ -43,7 +43,9 @@ const Users = props => {
       cell: row => (
         <>
           {transformToNewline(
-            row.addresses?.length ? row.addresses[0].delivery_address : '',
+            row.addresses && row.addresses.length
+              ? row.addresses[0].delivery_address
+              : '',
             15
           )}
         </>
@@ -140,7 +142,7 @@ const Users = props => {
                     <DataTable
                       title={t('Users')}
                       columns={columns}
-                      data={data?.users || []}
+                      data={data && data.users ? data.users : []}
                       pagination
                       progressPending={loading}
                       progressComponent={<CustomLoader />}

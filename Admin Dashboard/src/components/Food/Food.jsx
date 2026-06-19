@@ -273,8 +273,11 @@ function Food(props) {
   }
   const onError = err => {
     const msg =
-      err?.graphQLErrors?.[0]?.message ||
-      err?.message ||
+      (err &&
+        err.graphQLErrors &&
+        err.graphQLErrors[0] &&
+        err.graphQLErrors[0].message) ||
+      (err && err.message) ||
       'Error al guardar. Verifica la imagen e intenta de nuevo.'
     errorSetter(msg)
     successSetter('')
@@ -878,7 +881,7 @@ function Food(props) {
                               </span>{' '}
                               <span className="alert-inner--text">
                                 <strong>{t('Danger')}!</strong>{' '}
-                                {mainError || error?.message}
+                                {mainError || (error && error.message)}
                               </span>
                             </Alert>
                           </Col>
