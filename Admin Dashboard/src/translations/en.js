@@ -53,6 +53,7 @@ const en = {
     Review: 'Review',
     'Mark as': 'Mark as',
     Users: 'Users',
+    'Add User': 'Add User',
     Phone: 'Phone',
     Address: 'Address',
     '2019-20': '2019-20',

@@ -80,6 +80,10 @@ function Food(props) {
   const [imgMenu, imgMenuSetter] = useState(
     props.food ? props.food.img_url : ''
   )
+  const [selectedFile, selectedFileSetter] = useState(null)
+  const [imageUrlInput, imageUrlInputSetter] = useState(
+    props.food ? props.food.img_url : ''
+  )
   const [category, categorySetter] = useState(
     props.food ? props.food.category._id : ''
   )
@@ -109,9 +113,10 @@ function Food(props) {
     console.log(message)
     return images.length ? images[0] : undefined
   }
-  const selectImage = (event, state) => {
+  const selectImage = event => {
     const result = filterImage(event)
     if (result) {
+      selectedFileSetter(result)
       imageToBase64(result)
     }
   }
@@ -213,6 +218,8 @@ function Food(props) {
     titleSetter('')
     descriptionSetter('')
     imgMenuSetter('')
+    selectedFileSetter(null)
+    imageUrlInputSetter('')
     variationsSetter([
       {
         title: '',
@@ -264,8 +271,12 @@ function Food(props) {
     )
     variationsSetter([...variation])
   }
-  const onError = () => {
-    errorSetter('Failed.Please try again')
+  const onError = err => {
+    const msg =
+      err?.graphQLErrors?.[0]?.message ||
+      err?.message ||
+      'Error al guardar. Verifica la imagen e intenta de nuevo.'
+    errorSetter(msg)
     successSetter('')
   }
   // show Create Addon modal
@@ -294,32 +305,63 @@ function Food(props) {
     }
     fileReader.readAsDataURL(imgUrl)
   }
-  const uploadImageToCloudinary = async() => {
-    if (imgMenu === '') {
-      return imgMenu
+  const DEFAULT_FOOD_IMAGE =
+    'https://placehold.co/600x400/f97316/ffffff?text=Comida'
+
+  const uploadImageToCloudinary = async () => {
+    const urlFromInput = imageUrlInput.trim()
+    if (urlFromInput.startsWith('http')) {
+      return urlFromInput
     }
-    if (props.food && props.food.img_url === imgMenu) {
+
+    if (props.food && props.food.img_url === imgMenu && imgMenu.startsWith('http')) {
       return imgMenu
     }
 
-    const apiUrl = cloudinary_upload_url
-    const data = {
-      file: imgMenu,
-      upload_preset: cloudinary_food
+    if (selectedFile) {
+      const formData = new FormData()
+      formData.append('file', selectedFile)
+      formData.append('upload_preset', cloudinary_food)
+      try {
+        const result = await fetch(cloudinary_upload_url, {
+          method: 'POST',
+          body: formData
+        })
+        const imageData = await result.json()
+        if (imageData.secure_url) {
+          return imageData.secure_url
+        }
+        console.error('Cloudinary error:', imageData)
+      } catch (e) {
+        console.error(e)
+      }
     }
-    try {
-      const result = await fetch(apiUrl, {
-        body: JSON.stringify(data),
-        headers: {
-          'content-type': 'application/json'
-        },
-        method: 'POST'
-      })
-      const imageData = await result.json()
-      return imageData.secure_url
-    } catch (e) {
-      console.log(e)
+
+    if (imgMenu && imgMenu.startsWith('data:')) {
+      const data = {
+        file: imgMenu,
+        upload_preset: cloudinary_food
+      }
+      try {
+        const result = await fetch(cloudinary_upload_url, {
+          body: JSON.stringify(data),
+          headers: { 'content-type': 'application/json' },
+          method: 'POST'
+        })
+        const imageData = await result.json()
+        if (imageData.secure_url) {
+          return imageData.secure_url
+        }
+      } catch (e) {
+        console.error(e)
+      }
     }
+
+    if (imgMenu.startsWith('http')) {
+      return imgMenu
+    }
+
+    return DEFAULT_FOOD_IMAGE
   }
   const { t } = props
   return (
@@ -525,16 +567,31 @@ function Food(props) {
                                           alt="..."
                                           className="rounded-rectangle"
                                           src={imgMenu}
+                                          style={{ maxHeight: 120 }}
                                         />
                                       </a>
                                     )}
                                     <input
                                       className="mt-4"
                                       type="file"
+                                      accept="image/jpeg,image/png,image/gif,image/webp"
+                                      onChange={selectImage}
+                                    />
+                                    <Input
+                                      className="mt-2"
+                                      placeholder="O pega URL de imagen (https://...)"
+                                      type="url"
+                                      value={imageUrlInput}
                                       onChange={event => {
-                                        selectImage(event, 'imgMenu')
+                                        imageUrlInputSetter(event.target.value)
+                                        if (event.target.value.startsWith('http')) {
+                                          imgMenuSetter(event.target.value)
+                                        }
                                       }}
                                     />
+                                    <small className="text-muted">
+                                      Sube una imagen JPG/PNG o pega una URL. Es obligatoria para guardar el producto.
+                                    </small>
                                   </div>
                                 </FormGroup>
                               </Col>
@@ -750,35 +807,48 @@ function Food(props) {
                               onClick={async e => {
                                 e.preventDefault()
                                 if (onSubmitValidaiton()) {
-                                  mutate({
-                                    variables: {
-                                      foodInput: {
-                                        _id: props.food ? props.food._id : '',
-                                        title: title,
-                                        description: description,
-                                        img_url: await uploadImageToCloudinary(),
-                                        category: category,
-                                        variations: variations.map(
-                                          ({
-                                            title,
-                                            price,
-                                            discounted,
-                                            addons
-                                          }) => {
-                                            return {
-                                              title,
-                                              price: +price,
-                                              discounted: +discounted,
-                                              addons
-                                            }
-                                          }
-                                        ),
-                                        stock: +stock
-                                      }
+                                  try {
+                                    const imgUrl = await uploadImageToCloudinary()
+                                    if (!imgUrl) {
+                                      errorSetter(
+                                        'Debes subir una imagen o pegar una URL válida.'
+                                      )
+                                      return
                                     }
-                                  })
+                                    mutate({
+                                      variables: {
+                                        foodInput: {
+                                          _id: props.food ? props.food._id : '',
+                                          title: title,
+                                          description: description,
+                                          img_url: imgUrl,
+                                          category: category,
+                                          variations: variations.map(
+                                            ({
+                                              title,
+                                              price,
+                                              discounted,
+                                              addons
+                                            }) => {
+                                              return {
+                                                title,
+                                                price: +price,
+                                                discounted: +discounted,
+                                                addons
+                                              }
+                                            }
+                                          ),
+                                          stock: +stock
+                                        }
+                                      }
+                                    })
+                                  } catch (uploadErr) {
+                                    errorSetter(
+                                      uploadErr.message ||
+                                        'Error al subir la imagen'
+                                    )
+                                  }
                                 }
-                                errorSetter('')
                                 successSetter('')
                               }}
                               size="lg">
@@ -801,13 +871,14 @@ function Food(props) {
                             </Alert>
                             <Alert
                               color="danger"
-                              isOpen={!!mainError}
+                              isOpen={!!mainError || !!error}
                               toggle={onDismiss}>
                               <span className="alert-inner--icon">
                                 <i className="ni ni-like-2" />
                               </span>{' '}
                               <span className="alert-inner--text">
-                                <strong>{t('Danger')}!</strong> {mainError}
+                                <strong>{t('Danger')}!</strong>{' '}
+                                {mainError || error?.message}
                               </span>
                             </Alert>
                           </Col>

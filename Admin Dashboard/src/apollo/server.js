@@ -431,6 +431,7 @@ export const getUsers = `query Users($page:Int){
     name
     email
     phone
+    is_active
     addresses{
       _id
       latitude
@@ -441,6 +442,21 @@ export const getUsers = `query Users($page:Int){
     }
   }
 }`
+
+export const createUser = `
+  mutation CreateUser($email:String!,$password:String!,$name:String!,$phone:String!){
+    createUser(userInput:{
+      email:$email,
+      password:$password,
+      name:$name,
+      phone:$phone
+    }){
+      userId
+      name
+      email
+      phone
+    }
+  }`
 
 export const reviews = `query AllReviews($offset:Int){
   allReviews(offset:$offset){
