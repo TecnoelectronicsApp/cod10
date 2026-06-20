@@ -50,6 +50,7 @@ export interface Order {
   order_id: string;
   order_status: string;
   order_amount: number;
+  paid_amount?: number;
   delivery_charges?: number;
   payment_method?: string;
   payment_status?: string;

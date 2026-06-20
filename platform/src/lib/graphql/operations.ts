@@ -79,8 +79,18 @@ export const MY_ORDERS = gql`
 `;
 
 export const PLACE_ORDER = gql`
-  mutation PlaceOrder($orderInput: [OrderInput!]!, $paymentMethod: String!, $address: AddressInput!) {
-    placeOrder(orderInput: $orderInput, paymentMethod: $paymentMethod, address: $address) {
+  mutation PlaceOrder(
+    $orderInput: [OrderInput!]!
+    $paymentMethod: String!
+    $address: AddressInput!
+    $cashTender: Float
+  ) {
+    placeOrder(
+      orderInput: $orderInput
+      paymentMethod: $paymentMethod
+      address: $address
+      cashTender: $cashTender
+    ) {
       _id order_id order_status order_amount
     }
   }
@@ -95,7 +105,7 @@ export const ADMIN_LOGIN = gql`
 export const ALL_ORDERS = gql`
   query AllOrders($page: Int, $rows: Int) {
     allOrders(page: $page, rows: $rows) {
-      _id order_id order_status order_amount delivery_charges payment_method payment_status createdAt
+      _id order_id order_status order_amount delivery_charges payment_method payment_status paid_amount createdAt
       user { _id name phone }
       rider { _id name }
       delivery_address { delivery_address details label latitude longitude }
@@ -131,7 +141,7 @@ export const SUBSCRIBE_PLACE_ORDER = gql`
     subscribePlaceOrder {
       origin
       order {
-        _id order_id order_status order_amount delivery_charges payment_method payment_status createdAt
+        _id order_id order_status order_amount delivery_charges payment_method payment_status paid_amount createdAt
         user { name phone }
         delivery_address { delivery_address details label latitude longitude }
         items { quantity food { title } variation { title price } addons { title options { title } } }
@@ -149,7 +159,7 @@ export const RIDER_LOGIN = gql`
 export const ASSIGNED_ORDERS = gql`
   query AssignedOrders($id: String!) {
     assignedOrders(id: $id) {
-      _id order_id order_status order_amount delivery_charges payment_method payment_status createdAt
+      _id order_id order_status order_amount delivery_charges payment_method payment_status paid_amount createdAt
       user { name phone email }
       delivery_address { delivery_address details label latitude longitude }
       items { quantity food { title } variation { title price } addons { title options { title } } }
@@ -160,7 +170,7 @@ export const ASSIGNED_ORDERS = gql`
 export const UNASSIGNED_ORDERS = gql`
   query UnassignedOrders {
     unassignedOrders {
-      _id order_id order_status order_amount delivery_charges payment_method payment_status createdAt
+      _id order_id order_status order_amount delivery_charges payment_method payment_status paid_amount createdAt
       user { name phone }
       delivery_address { delivery_address details label latitude longitude }
       items { quantity food { title } variation { title price } addons { title options { title } } }

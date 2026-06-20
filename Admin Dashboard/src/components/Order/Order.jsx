@@ -40,6 +40,8 @@ import {
   translateOrderStatus,
   translatePaymentStatus,
   translatePaymentMethod,
+  isCashPaymentMethod,
+  calcCashChange,
 } from "../../utils/orderLabels";
 
 // constants
@@ -860,7 +862,9 @@ function Order(props) {
                                 </ListGroupItem>
                                 {order.order_status !== "DELIVERED" && (
                                   <ListGroupItem className="justify-content-between">
-                                    {t("Paid Amount")}
+                                    {isCashPaymentMethod(order.payment_method)
+                                      ? t("Cash bill")
+                                      : t("Paid Amount")}
                                     <Badge
                                       style={{
                                         fontSize: "12px",
@@ -877,6 +881,28 @@ function Order(props) {
                                     </Badge>
                                   </ListGroupItem>
                                 )}
+                                {isCashPaymentMethod(order.payment_method) &&
+                                  order.paid_amount != null && (
+                                    <ListGroupItem className="justify-content-between">
+                                      {t("Change")}
+                                      <Badge
+                                        style={{
+                                          fontSize: "12px",
+                                          float: "right",
+                                          color: "black",
+                                          backgroundColor: "#d1fae5",
+                                        }}
+                                      >
+                                        {formatDualCurrency(
+                                          calcCashChange(
+                                            order.paid_amount,
+                                            order.order_amount
+                                          ),
+                                          data.configuration.currency_symbol
+                                        )}
+                                      </Badge>
+                                    </ListGroupItem>
+                                  )}
                               </ListGroup>
                             </FormGroup>
                           </Col>

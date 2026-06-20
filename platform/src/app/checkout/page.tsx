@@ -13,6 +13,7 @@ import { useBcvRate } from '@/hooks/useBcvRate';
 import { useStoreConfig } from '@/hooks/useStoreConfig';
 import DualPrice from '@/components/DualPrice';
 import PaymentMethodSelector from '@/components/PaymentMethodSelector';
+import CashTenderInput from '@/components/CashTenderInput';
 import FulfillmentSelector, { FulfillmentMode } from '@/components/FulfillmentSelector';
 import {
   buildPaymentMethodLabel,
@@ -25,6 +26,7 @@ import {
   DELIVERY_BASE_FEE,
   DELIVERY_INCLUDED_KM,
 } from '@/lib/delivery-pricing';
+import { formatCashTenderLine, isCashPayment } from '@/lib/cash-payment';
 
 const LocationPicker = dynamic(() => import('@/components/LocationPicker'), {
   ssr: false,
@@ -50,6 +52,7 @@ function CheckoutContent() {
   });
   const [error, setError] = useState('');
   const [selectedPaymentId, setSelectedPaymentId] = useState('');
+  const [cashTender, setCashTender] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
@@ -99,6 +102,12 @@ function CheckoutContent() {
     }
   }, [paymentMethods, selectedPaymentId]);
 
+  useEffect(() => {
+    if (!isCashPayment(selectedPaymentId)) {
+      setCashTender('');
+    }
+  }, [selectedPaymentId]);
+
   const deliveryAddressLine = useMemo(() => {
     if (fulfillment === 'pickup') return storeLocation.address;
     if (selectedAddress) return selectedAddress.delivery_address;
@@ -124,6 +133,20 @@ function CheckoutContent() {
       return;
     }
 
+    const payingCash = isCashPayment(method.id);
+    const tenderAmount = payingCash ? parseFloat(cashTender) : null;
+    if (payingCash) {
+      if (!Number.isFinite(tenderAmount) || tenderAmount! < grandTotal) {
+        setError('Indica con qué billete pagas (debe cubrir el total)');
+        return;
+      }
+    }
+
+    const cashDetail =
+      payingCash && tenderAmount != null
+        ? formatCashTenderLine(tenderAmount, grandTotal, symbol)
+        : '';
+
     let orderAddress;
 
     if (fulfillment === 'pickup') {
@@ -133,6 +156,7 @@ function CheckoutContent() {
         details: [
           storeLocation.details || 'Retiro en local',
           `Pago: ${buildPaymentMethodLabel(method)}`,
+          cashDetail,
         ]
           .filter(Boolean)
           .join(' | '),
@@ -154,7 +178,7 @@ function CheckoutContent() {
       orderAddress = {
         label: 'Delivery',
         delivery_address: addr.delivery_address.trim(),
-        details: [addr.details, `Pago: ${buildPaymentMethodLabel(method)}`]
+        details: [addr.details, `Pago: ${buildPaymentMethodLabel(method)}`, cashDetail]
           .filter(Boolean)
           .join(' | '),
         latitude: String(lat),
@@ -178,6 +202,7 @@ function CheckoutContent() {
           orderInput,
           paymentMethod: method.id,
           address: orderAddress,
+          cashTender: payingCash ? tenderAmount : null,
         },
       });
       clearCart();
@@ -345,6 +370,14 @@ function CheckoutContent() {
               selectedId={selectedPaymentId}
               onSelect={setSelectedPaymentId}
             />
+            {isCashPayment(selectedPaymentId) && (
+              <CashTenderInput
+                total={grandTotal}
+                value={cashTender}
+                onChange={setCashTender}
+                symbol={symbol}
+              />
+            )}
           </div>
         ) : (
           !configLoading && (
@@ -356,7 +389,14 @@ function CheckoutContent() {
 
         <button
           type="submit"
-          disabled={loading || configLoading || !paymentMethods.length || !isLoggedIn}
+          disabled={
+            loading ||
+            configLoading ||
+            !paymentMethods.length ||
+            !isLoggedIn ||
+            (isCashPayment(selectedPaymentId) &&
+              (!cashTender || parseFloat(cashTender) < grandTotal))
+          }
           className="w-full rounded-xl bg-orange-500 py-3 font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
         >
           {!isLoggedIn

@@ -100,6 +100,8 @@ const en = {
     Total: "Total",
     "Payment Method": "Payment Method",
     "Paid Amount": "Paid Amount",
+    "Cash bill": "Cash bill",
+    Change: "Change",
     "Add Coupon": "Add Coupon",
     "Edit Coupon": "Edit Coupon",
     "Coupon Code": "Coupon Code",

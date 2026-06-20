@@ -39,12 +39,18 @@ export function resolvePaymentMethodLabel(
   return paymentMethod || '—';
 }
 
-/** Quita la línea "Pago: …" de los detalles de dirección. */
+/** Quita líneas de pago y billete de los detalles de dirección. */
 export function cleanAddressDetails(details?: string): string {
   if (!details) return '';
   return details
     .split('|')
     .map((s) => s.trim())
-    .filter((s) => s && !/^Pago:/i.test(s))
+    .filter(
+      (s) =>
+        s &&
+        !/^Pago:/i.test(s) &&
+        !/^Billete:/i.test(s) &&
+        !/^Vuelto:/i.test(s)
+    )
     .join(' | ');
 }

@@ -442,7 +442,7 @@ function createResolvers(pubsub) {
           return doc;
         });
       },
-      placeOrder: async (_, { orderInput, paymentMethod, address }, context) => {
+      placeOrder: async (_, { orderInput, paymentMethod, address, cashTender }, context) => {
         const auth = requireUser(context);
         const cfg = await getConfig();
         const items = [];
@@ -500,6 +500,17 @@ function createResolvers(pubsub) {
         const delivery = calcDeliveryFeeFromAddress(address);
         const total = subtotal + delivery;
 
+        const cashIds = ['efectivo', 'cash', 'cod'];
+        const payingCash = cashIds.includes(String(paymentMethod || '').toLowerCase());
+        let paidAmount = total;
+        if (payingCash) {
+          const tender = Number(cashTender);
+          if (!Number.isFinite(tender) || tender < total) {
+            throw new Error('Indica con qué billete pagas (debe cubrir el total)');
+          }
+          paidAmount = tender;
+        }
+
         const order = await Order.create({
           order_id: orderId,
           user: new mongoose.Types.ObjectId(auth.userId),
@@ -507,7 +518,7 @@ function createResolvers(pubsub) {
           delivery_address: address,
           delivery_charges: delivery,
           order_amount: total,
-          paid_amount: total,
+          paid_amount: paidAmount,
           payment_method: paymentMethod,
           payment_status: 'PENDING',
           order_status: 'PENDING',

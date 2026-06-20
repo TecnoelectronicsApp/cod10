@@ -93,6 +93,8 @@ const es = {
     Total: "Total",
     "Payment Method": "Método de pago",
     "Paid Amount": "Monto pagado",
+    "Cash bill": "Billete",
+    Change: "Vuelto",
     "Add Coupon": "Agregar cupón",
     "Edit Coupon": "Editar cupón",
     "Coupon Code": "Código de cupón",

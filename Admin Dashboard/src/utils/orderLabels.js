@@ -28,6 +28,19 @@ export function translatePaymentMethod(method) {
   if (method.indexOf("Pagomóvil") === 0 || method.indexOf("Pagomovil") === 0) {
     return method;
   }
-  if (method === "COD") return "Efectivo (contra entrega)";
+  if (method === "COD" || method === "efectivo" || method === "cash") {
+    return "Efectivo";
+  }
   return method;
+}
+
+export function isCashPaymentMethod(method) {
+  if (!method) return false;
+  const id = String(method).toLowerCase();
+  return id === "efectivo" || id === "cash" || id === "cod";
+}
+
+export function calcCashChange(tender, total) {
+  if (!Number.isFinite(tender) || !Number.isFinite(total)) return 0;
+  return Math.max(0, Math.round((tender - total) * 100) / 100);
 }

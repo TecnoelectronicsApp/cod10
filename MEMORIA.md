@@ -112,7 +112,12 @@ npm run start:dev
 
 ## 5. Historial de cambios (cronológico)
 
-### 2026-06-20 — Mapa checkout: zoom + regla UX primordial
+### 2026-06-20 — Efectivo: denominación del billete y vuelto
+
+- **Checkout:** al elegir efectivo, el cliente indica billete ($1–$100, exacto u otro monto); se valida ≥ total
+- **API:** `placeOrder(cashTender)` guarda `paid_amount` = billete; vuelto = paid_amount − order_amount
+- **Cocina / repartidor / Admin:** muestran billete y vuelto calculado
+
 
 - **Zoom embed:** botones +/−, rueda del mouse (PC) y pellizco (móvil); niveles 14–20; pin fijo + arrastre
 - **Deploy:** producción en https://cod10.vercel.app (build OK con `Array.from` para iteración Map)

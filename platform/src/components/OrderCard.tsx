@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Order, OrderItem } from '@/lib/types';
 import { cleanAddressDetails, resolvePaymentMethodLabel } from '@/lib/payment-labels';
+import { calcCashChange, isCashPayment, parseCashTenderFromDetails } from '@/lib/cash-payment';
 import { coordsValid, mapsLink } from '@/lib/google-maps';
 import StatusBadge from './StatusBadge';
 function formatCustomer(order: Order) {
@@ -104,6 +105,14 @@ export default function OrderCard({
     order.payment_method,
     order.delivery_address?.details
   );
+  const cashTender =
+    isCashPayment(order.payment_method) && order.paid_amount != null
+      ? order.paid_amount
+      : parseCashTenderFromDetails(order.delivery_address?.details);
+  const cashChange =
+    cashTender != null && order.order_amount != null
+      ? calcCashChange(cashTender, order.order_amount)
+      : null;
   const addressDetails = cleanAddressDetails(order.delivery_address?.details);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<KitchenCustomerInput>({
@@ -227,6 +236,14 @@ export default function OrderCard({
                   </>
                 )}
               </div>
+              {cashTender != null && (
+                <p className="rounded-lg bg-amber-50 px-2.5 py-1.5 text-sm font-semibold text-amber-900">
+                  💵 Paga con ${cashTender.toFixed(2)}
+                  {cashChange != null && (
+                    <span className="ml-2 text-green-700">· Vuelto ${cashChange.toFixed(2)}</span>
+                  )}
+                </p>
+              )}
               {onSaveCustomer && (
                 <button
                   type="button"
@@ -262,6 +279,14 @@ export default function OrderCard({
                   </>
                 )}
               </div>
+              {cashTender != null && (
+                <p className="text-sm font-semibold text-amber-900">
+                  💵 Billete ${cashTender.toFixed(2)}
+                  {cashChange != null && (
+                    <span className="ml-2 text-green-700">Vuelto ${cashChange.toFixed(2)}</span>
+                  )}
+                </p>
+              )}
               {!isPickup &&
                 coordsValid(
                   order.delivery_address?.latitude,

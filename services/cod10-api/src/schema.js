@@ -348,7 +348,7 @@ const typeDefs = `#graphql
     deleteCategory(id: String!): Category!
     reorderCategories(ids: [ID!]!): [Category!]!
     reorderFoods(ids: [ID!]!): [Food!]!
-    placeOrder(orderInput: [OrderInput!]!, paymentMethod: String!, address: AddressInput!, couponCode: String): Order!
+    placeOrder(orderInput: [OrderInput!]!, paymentMethod: String!, address: AddressInput!, couponCode: String, cashTender: Float): Order!
     updateOrderStatus(id: String!, status: String!, reason: String): Order!
     updatePaymentStatus(id: String!, status: String!): Order!
     updateOrderKitchenDetails(id: String!, input: OrderCustomerInput!): Order!
