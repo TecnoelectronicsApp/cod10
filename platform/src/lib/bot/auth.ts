@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'crypto';
+import { getWebhookSecret } from './openwa';
 
 export function checkBotApiKey(request: Request): boolean {
   const expected = process.env.BOT_API_KEY;
@@ -6,8 +7,11 @@ export function checkBotApiKey(request: Request): boolean {
   return request.headers.get('x-api-key') === expected;
 }
 
-export function verifyWebhookSignature(rawBody: string, signature: string | null): boolean {
-  const secret = process.env.WEBHOOK_SECRET;
+export async function verifyWebhookSignature(
+  rawBody: string,
+  signature: string | null,
+): Promise<boolean> {
+  const secret = await getWebhookSecret();
   if (!secret) return true;
   if (!signature) return false;
 

@@ -2,17 +2,21 @@ import { NextResponse } from 'next/server';
 import { verifyWebhookSignature } from '@/lib/bot/auth';
 import { buildBotCatalog, buildCatalogContext } from '@/lib/bot/catalog';
 import { generateGeminiReply } from '@/lib/bot/gemini';
-import { extractInboundMessage, sendOpenWAText, type OpenWAWebhookPayload } from '@/lib/bot/openwa';
+import { extractInboundMessage, sendOpenWAText, isBotEnabled, type OpenWAWebhookPayload } from '@/lib/bot/openwa';
 import { buildWhatsAppAccessUrl, whatsAppChatIdToPhone } from '@/lib/quick-auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
+    if (!(await isBotEnabled())) {
+      return NextResponse.json({ ok: true, skipped: true, reason: 'bot_disabled' });
+    }
+
     const rawBody = await request.text();
     const signature = request.headers.get('x-openwa-signature');
 
-    if (!verifyWebhookSignature(rawBody, signature)) {
+    if (!(await verifyWebhookSignature(rawBody, signature))) {
       return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 401 });
     }
 

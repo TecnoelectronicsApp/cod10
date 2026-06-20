@@ -1,11 +1,19 @@
 const DEFAULT_GRAPHQL_URL = 'https://enatega-singlevendor.up.railway.app/graphql';
 
 export function getGraphqlUrl(): string {
-  return (
-    process.env.GRAPHQL_URL ||
-    process.env.NEXT_PUBLIC_GRAPHQL_URL ||
-    DEFAULT_GRAPHQL_URL
-  ).replace(/\/$/, '');
+  if (process.env.GRAPHQL_URL) {
+    return process.env.GRAPHQL_URL.replace(/\/$/, '');
+  }
+  if (process.env.NEXT_PUBLIC_GRAPHQL_URL) {
+    return process.env.NEXT_PUBLIC_GRAPHQL_URL.replace(/\/$/, '');
+  }
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return `${process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '')}/api/graphql`;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}/api/graphql`;
+  }
+  return DEFAULT_GRAPHQL_URL;
 }
 
 export async function graphqlRequest<T>(

@@ -189,6 +189,45 @@ const es = {
     "ID number": "Cédula / RIF",
     "Binance pay ID": "ID de pago Binance",
     "Reset defaults": "Restablecer valores",
+    "WhatsApp Bot": "Bot WhatsApp (IA)",
+    "WhatsApp Bot help":
+      "Configura Gemini y el prompt del asistente. Al guardar se publica en Cloudinary y cod10.vercel.app lo usa para responder clientes.",
+    "WhatsApp Bot enabled": "Bot activo",
+    "Gemini API Key": "Clave API Gemini",
+    "Gemini model": "Modelo Gemini",
+    "Bot system prompt": "Prompt del bot (instrucciones IA)",
+    "Bot prompt placeholder":
+      "Describe cómo debe comportarse el asistente: tono, reglas, qué puede responder…",
+    "Bot prompt help":
+      "Este texto entrena la personalidad del bot. Incluye reglas como no inventar precios y responder en español.",
+    "OpenWA connection": "Conexión OpenWA (servidor en línea)",
+    "OpenWA connection help":
+      "OpenWA en Render (24/7): https://openwa-cod10.onrender.com — no uses la laptop. Tras desplegar, pega aquí la URL, Session ID y API Key.",
+    "OpenWA server URL": "URL del servidor OpenWA (Render)",
+    "OpenWA session ID": "ID de sesión WhatsApp",
+    "OpenWA API Key": "Clave API OpenWA",
+    "Webhook secret": "Secreto del webhook",
+    "WhatsApp Bot saved": "Configuración del bot guardada",
+    "WhatsApp Bot local only":
+      "Guardado solo en este navegador. Revisa Cloudinary o la conexión.",
+    "WhatsApp Bot save failed": "No se pudo publicar la configuración del bot",
+    "WhatsApp link status": "Estado de WhatsApp",
+    "WhatsApp QR help":
+      "Conecta WhatsApp con OpenWA en Render. Pulsa Iniciar sesión y escanea el QR con tu teléfono.",
+    "Refresh WA status": "Actualizar estado",
+    "Start WA session": "Iniciar sesión WhatsApp",
+    "Open OpenWA dashboard": "Abrir panel OpenWA",
+    "Scan QR WhatsApp": "Escanea este código con WhatsApp",
+    "WhatsApp QR scan hint":
+      "WhatsApp → Dispositivos vinculados → Vincular dispositivo. El QR se actualiza solo.",
+    "OpenWA credentials missing":
+      "Completa URL OpenWA y API Key antes de conectar WhatsApp.",
+    "WA status online": "En línea",
+    "WA status offline": "Desconectado",
+    "WA status scan qr": "Escanea el QR",
+    "WA status connecting": "Conectando…",
+    "WA status failed": "Error de conexión",
+    "WA status unknown": "Sin verificar",
     Assign: "Asignar",
     "status PENDING": "Pendiente",
     "status ACCEPTED": "Aceptado",

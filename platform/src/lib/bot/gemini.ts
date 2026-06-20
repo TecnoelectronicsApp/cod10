@@ -1,25 +1,22 @@
-const DEFAULT_SYSTEM_PROMPT = `Eres el asistente virtual de ventas de Codigo 10 (Cod10), una tienda de delivery.
-Responde en español de forma amable, clara y concisa por WhatsApp.
-Usa SOLO la información del menú, precios y métodos de pago proporcionada — no inventes productos ni precios.
-Si el cliente pregunta por un producto que no existe, indícalo amablemente y ofrece alternativas del menú.
-Si pregunta cómo pagar, explica los métodos disponibles (Pagomóvil, efectivo, punto de venta, etc.) con los datos exactos.
-Muestra precios en USD y en Bs si la tasa BCV está disponible.
-Invita al cliente a pedir en ${process.env.NEXT_PUBLIC_SITE_URL || 'https://cod10.vercel.app'} para checkout completo.
-Si tienes el link de acceso rápido del cliente (con su teléfono), envíalo — entra sin escribir datos.
-Mantén respuestas cortas (máximo 3 párrafos). Usa emojis con moderación.`;
+import { getBotRuntimeConfig } from './bot-config';
+import { loadSystemPrompt } from './system-prompt';
 
 export async function generateGeminiReply(
   catalogContext: string,
   userMessage: string,
   systemPrompt?: string,
 ): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const runtime = await getBotRuntimeConfig();
+  const apiKey = runtime.geminiApiKey;
+
   if (!apiKey) {
-    throw new Error('GEMINI_API_KEY not configured');
+    throw new Error('Gemini API key not configured (admin → Bot WhatsApp o GEMINI_API_KEY)');
   }
 
-  const model = process.env.GEMINI_MODEL ?? 'gemini-2.0-flash';
-  const prompt = systemPrompt ?? process.env.GEMINI_SYSTEM_PROMPT ?? DEFAULT_SYSTEM_PROMPT;
+  const model = runtime.geminiModel;
+  const storeUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://cod10.vercel.app';
+  const basePrompt = systemPrompt || runtime.systemPrompt || loadSystemPrompt();
+  const prompt = `${basePrompt}\n\nTienda web del cliente: ${storeUrl}`;
   const fullSystem = `${prompt}\n\n${catalogContext}`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;

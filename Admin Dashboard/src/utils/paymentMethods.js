@@ -104,7 +104,11 @@ function mergePaymentMethodFields(def, remote, local) {
   return merged;
 }
 
-export function buildFullStoreConfig(paymentOverride, multiOverride) {
+export function buildFullStoreConfig(
+  paymentOverride,
+  multiOverride,
+  botOverride
+) {
   const payments = normalizePaymentMethodsConfig(
     paymentOverride || getPaymentMethodsConfig()
   );
@@ -115,6 +119,24 @@ export function buildFullStoreConfig(paymentOverride, multiOverride) {
     multiOverride || {}
   );
   const rate = parseFloat(multi.exchangeRate);
+
+  let whatsappBot = botOverride;
+  if (!whatsappBot) {
+    try {
+      const raw = localStorage.getItem("cod10-whatsapp-bot");
+      if (raw) whatsappBot = JSON.parse(raw);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+  if (!whatsappBot) {
+    whatsappBot = {
+      enabled: true,
+      geminiModel: "gemini-2.0-flash",
+      systemPrompt: "",
+    };
+  }
+
   return {
     paymentMethods: payments.paymentMethods,
     multiCurrency: {
@@ -127,6 +149,7 @@ export function buildFullStoreConfig(paymentOverride, multiOverride) {
       rateDate: multi.rateDate || null,
       rateFetchedAt: multi.rateFetchedAt || null,
     },
+    whatsappBot: whatsappBot,
   };
 }
 
@@ -234,9 +257,20 @@ export async function saveStoreConfigRemote(config) {
 export async function syncPaymentMethodsToServer(config) {
   const normalized = normalizePaymentMethodsConfig(config);
   savePaymentMethodsConfig(normalized);
-  const full = buildFullStoreConfig({
-    paymentMethods: normalized.paymentMethods,
-  });
+
+  let botOverride = null;
+  try {
+    const cloud = await fetchStoreConfigFromCloudinary();
+    if (cloud && cloud.whatsappBot) botOverride = cloud.whatsappBot;
+  } catch (e) {
+    /* ignore */
+  }
+
+  const full = buildFullStoreConfig(
+    { paymentMethods: normalized.paymentMethods },
+    null,
+    botOverride
+  );
   let cloudinary = false;
   let remote = false;
   let cloudinaryError = "";

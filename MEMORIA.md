@@ -112,6 +112,12 @@ npm run start:dev
 
 ## 5. Historial de cambios (cronológico)
 
+### 2026-06-20 — Efectivo: múltiples billetes + checkout sin registro previo
+
+- **Billetes:** selección múltiple (+$1, +$5…); suma automática y vuelto; desglose en cocina/admin
+- **Checkout sin login:** botón activo; valida pedido → guarda borrador → `/login?redirect=/checkout` (teléfono)
+- **Tras registrarse:** restaura borrador del checkout desde sessionStorage
+
 ### 2026-06-20 — Efectivo: denominación del billete y vuelto
 
 - **Checkout:** al elegir efectivo, el cliente indica billete ($1–$100, exacto u otro monto); se valida ≥ total
@@ -175,6 +181,14 @@ npm run start:dev
 - **Fallback catálogo:** `platform/public/catalog-fallback.json` + `useMenuCatalog.ts`
 - **Admin env:** `REACT_APP_SERVER_URL=https://cod10.vercel.app/api/` (vercel.json + `.env.production`)
 - **Docs:** `ATLAS-SETUP.md`, `SALIR-DE-ENATEGA.md`, scripts `seed:api`, `setup:atlas`, `migrate:enatega`
+
+### 2026-06-20 — OpenWA en Render (24/7, sin laptop)
+
+- **OpenWA:** `render.yaml` en repo OpenWA → servicio Docker `openwa-cod10` (Standard + disco 1 GB)
+- **Guía:** `OpenWA/docs/deploy-render-cod10.md`
+- **Script:** `scripts/setup-render-openwa.mjs` (webhook + checklist admin)
+- **Admin:** Bot WhatsApp (IA) guarda clave Gemini, prompt y URL Render en Cloudinary
+- **Flujo:** WhatsApp → Render OpenWA → cod10.vercel.app/bot/webhook → Gemini → respuesta
 
 ### 2026-06-19 — Bot WhatsApp + Gemini + OpenWA (integración MongoDB)
 

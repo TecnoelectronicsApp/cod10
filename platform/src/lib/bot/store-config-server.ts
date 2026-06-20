@@ -1,7 +1,32 @@
 import type { PaymentMethodConfig, StoreConfig } from '../store-config';
 import { getBcvApiBase } from '../bcv-api-base';
 
+const CLOUDINARY_STORE_CONFIG_URL =
+  process.env.NEXT_PUBLIC_STORE_CONFIG_URL ||
+  'https://res.cloudinary.com/dimjm4ald/raw/upload/food/cod10/store-config-v3.json';
+
+async function fetchCloudinaryStoreConfig(): Promise<StoreConfig | null> {
+  const url =
+    CLOUDINARY_STORE_CONFIG_URL +
+    (CLOUDINARY_STORE_CONFIG_URL.includes('?') ? '&' : '?') +
+    't=' +
+    Date.now();
+
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data?.paymentMethods) return data as StoreConfig;
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export async function fetchStoreConfigServer(): Promise<StoreConfig> {
+  const cloud = await fetchCloudinaryStoreConfig();
+  if (cloud) return cloud;
+
   const base = getBcvApiBase();
 
   if (base) {
@@ -49,6 +74,12 @@ export async function fetchStoreConfigServer(): Promise<StoreConfig> {
 }
 
 export async function fetchBcvRateServer(): Promise<{ rate: number; rateDate?: string } | null> {
+  const cloud = await fetchCloudinaryStoreConfig();
+  const cloudRate = cloud?.multiCurrency?.exchangeRate;
+  if (typeof cloudRate === 'number' && cloudRate > 0 && cloud) {
+    return { rate: cloudRate, rateDate: cloud.multiCurrency?.rateDate ?? undefined };
+  }
+
   const base = getBcvApiBase();
   if (!base) return null;
   try {

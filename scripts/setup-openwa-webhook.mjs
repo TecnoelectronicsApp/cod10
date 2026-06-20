@@ -23,7 +23,6 @@ const res = await fetch(`${openwaBase}/api/sessions/${encodeURIComponent(session
     url: webhookUrl,
     events: ['message.received'],
     secret: webhookSecret || undefined,
-    active: true,
   }),
 });
 

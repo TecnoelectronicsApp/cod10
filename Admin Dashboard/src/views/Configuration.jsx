@@ -13,6 +13,7 @@ import DeliveryConfiguration from "../components/Configuration/Delivery/Delivery
 import CurrencyConfiguration from "../components/Configuration/Currency/Currency";
 import MultiCurrencyConfiguration from "../components/Configuration/MultiCurrency/MultiCurrency";
 import PaymentMethodsConfiguration from "../components/Configuration/PaymentMethods/PaymentMethods";
+import WhatsappBotConfiguration from "../components/Configuration/WhatsappBot/WhatsappBot";
 import Loader from "react-loader-spinner";
 
 const GET_CONFIGURATION = gql`
@@ -72,6 +73,7 @@ const Configuration = (props) => {
               />
               <MultiCurrencyConfiguration />
               <PaymentMethodsConfiguration />
+              <WhatsappBotConfiguration />
             </Container>
           );
         }}

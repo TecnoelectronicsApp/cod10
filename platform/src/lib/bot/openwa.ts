@@ -1,3 +1,5 @@
+import { getBotRuntimeConfig } from './bot-config';
+
 export type OpenWAWebhookPayload = {
   event: string;
   timestamp: string;
@@ -39,12 +41,13 @@ export async function sendOpenWAText(opts: {
   quotedMessageId?: string;
   sessionId?: string;
 }): Promise<void> {
-  const baseUrl = process.env.OPENWA_BASE_URL?.replace(/\/+$/, '');
-  const apiKey = process.env.OPENWA_API_KEY;
-  const sessionId = opts.sessionId ?? process.env.OPENWA_SESSION_ID;
+  const runtime = await getBotRuntimeConfig();
+  const baseUrl = runtime.openwaBaseUrl.replace(/\/+$/, '');
+  const apiKey = runtime.openwaApiKey;
+  const sessionId = opts.sessionId ?? runtime.openwaSessionId;
 
   if (!baseUrl || !apiKey || !sessionId) {
-    throw new Error('OPENWA_BASE_URL, OPENWA_API_KEY and OPENWA_SESSION_ID required');
+    throw new Error('OpenWA not configured (admin → Bot WhatsApp → URL, API Key, Session ID)');
   }
 
   const body: Record<string, string> = {
@@ -71,4 +74,14 @@ export async function sendOpenWAText(opts: {
     const errText = await response.text();
     throw new Error(`OpenWA send-text error ${response.status}: ${errText.slice(0, 300)}`);
   }
+}
+
+export async function getWebhookSecret(): Promise<string | undefined> {
+  const runtime = await getBotRuntimeConfig();
+  return runtime.webhookSecret || undefined;
+}
+
+export async function isBotEnabled(): Promise<boolean> {
+  const runtime = await getBotRuntimeConfig();
+  return runtime.enabled;
 }
