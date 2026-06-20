@@ -2,6 +2,7 @@
 
 import { useQuery, ApolloProvider } from '@apollo/client/react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { getApolloClient } from '@/lib/apollo-client';
 import { getToken } from '@/lib/auth';
 import { MY_ORDERS } from '@/lib/graphql/operations';
@@ -9,11 +10,18 @@ import { Order } from '@/lib/types';
 import OrderCard from '@/components/OrderCard';
 
 function OrdersContent() {
-  const { data, loading } = useQuery<{ orders: Order[] }>(MY_ORDERS, {
-    skip: !getToken('customer'),
+  const [hasToken, setHasToken] = useState(false);
+
+  useEffect(() => {
+    setHasToken(Boolean(getToken('customer')));
+  }, []);
+
+  const { data, loading, error, refetch } = useQuery<{ orders: Order[] }>(MY_ORDERS, {
+    skip: !hasToken,
+    fetchPolicy: 'network-only',
   });
 
-  if (!getToken('customer')) {
+  if (!hasToken) {
     return (
       <div className="mx-auto max-w-lg px-4 py-20 text-center">
         <p className="text-gray-500">Inicia sesión para ver tus pedidos</p>
@@ -28,6 +36,21 @@ function OrdersContent() {
     return (
       <div className="flex justify-center py-20">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-orange-500 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-20 text-center">
+        <p className="text-red-500">{error.message}</p>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="mt-3 text-orange-600 hover:underline"
+        >
+          Reintentar
+        </button>
       </div>
     );
   }

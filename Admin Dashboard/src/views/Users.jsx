@@ -1,104 +1,90 @@
 /* eslint-disable react/display-name */
-import React, { useState } from 'react'
-import { withTranslation } from 'react-i18next'
-import { Container, Row, Card, Badge, Modal, Alert } from 'reactstrap'
-import Header from '../components/Headers/Header.jsx'
-import CustomLoader from '../components/Loader/CustomLoader'
-import UserForm from '../components/User/User.jsx'
-import { Query, compose, withApollo } from 'react-apollo'
-import gql from 'graphql-tag'
-import { getUsers } from '../apollo/server'
-import { transformToNewline } from '../utils/stringManipulations'
-import DataTable from 'react-data-table-component'
-import orderBy from 'lodash.orderby'
+import React, { useState } from "react";
+import { withTranslation } from "react-i18next";
+import { Container, Row, Card, Badge, Modal, Alert } from "reactstrap";
+import Header from "../components/Headers/Header.jsx";
+import CustomLoader from "../components/Loader/CustomLoader";
+import UserForm from "../components/User/User.jsx";
+import { Query, compose, withApollo } from "react-apollo";
+import gql from "graphql-tag";
+import { getUsers } from "../apollo/server";
+import { transformToNewline } from "../utils/stringManipulations";
+import DataTable from "react-data-table-component";
+import orderBy from "lodash.orderby";
 
 const GET_USERS = gql`
   ${getUsers}
-`
+`;
 
-const Users = props => {
-  const [addModal, setAddModal] = useState(false)
-  const [infoMessage, setInfoMessage] = useState('')
+const Users = (props) => {
+  const [addModal, setAddModal] = useState(false);
+  const [infoMessage, setInfoMessage] = useState("");
 
   const columns = [
     {
-      name: 'Name',
+      name: "Name",
       sortable: true,
-      selector: 'name'
+      selector: "name",
     },
     {
-      name: 'Email',
+      name: "Email",
       sortable: true,
-      selector: 'email',
-      cell: row => hiddenData(row.email, 'EMAIL')
+      selector: "email",
+      cell: (row) => row.email || "-",
     },
     {
-      name: 'Phone',
+      name: "Phone",
       sortable: true,
-      selector: 'phone',
-      cell: row => hiddenData(row.phone, 'PHONE')
+      selector: "phone",
+      cell: (row) => row.phone || "-",
     },
     {
-      name: 'Address',
-      cell: row => (
+      name: "Address",
+      cell: (row) => (
         <>
           {transformToNewline(
             row.addresses && row.addresses.length
               ? row.addresses[0].delivery_address
-              : '',
+              : "",
             15
           )}
         </>
-      )
+      ),
     },
     {
-      name: 'Action',
-      cell: row => (
+      name: "Action",
+      cell: (row) => (
         <Badge
           color="secondary"
-          style={{ cursor: 'pointer' }}
+          style={{ cursor: "pointer" }}
           onClick={() => {
             setInfoMessage(
               `El usuario "${row.name}" pertenece al API demo compartido. ` +
-                'No se puede eliminar desde el panel; solo puedes agregar nuevos usuarios.'
-            )
-            setTimeout(() => setInfoMessage(''), 6000)
-          }}>
+                "No se puede eliminar desde el panel; solo puedes agregar nuevos usuarios."
+            );
+            setTimeout(() => setInfoMessage(""), 6000);
+          }}
+        >
           Info
         </Badge>
-      )
-    }
-  ]
-
-  const hiddenData = (cell, column) => {
-    if (column === 'EMAIL') {
-      if (cell != null) {
-        const splitArray = cell.split('@')
-        splitArray.splice(0, 1, '*'.repeat(splitArray[0].length))
-        return splitArray.join('@')
-      }
-      return '*'
-    }
-    if (column === 'PHONE') {
-      if (!cell) return '-'
-      return '*'.repeat(cell.length)
-    }
-  }
+      ),
+    },
+  ];
 
   const customSort = (rows, field, direction) => {
-    const handleField = row => {
+    const handleField = (row) => {
       if (row[field]) {
-        return row[field].toLowerCase()
+        return row[field].toLowerCase();
       }
-      return row[field]
-    }
-    return orderBy(rows, handleField, direction)
-  }
+      return row[field];
+    };
+    return orderBy(rows, handleField, direction);
+  };
 
   const handleSort = (column, sortDirection) =>
-    console.log(column.selector, sortDirection)
+    console.log(column.selector, sortDirection);
 
-  const { t } = props
+  const { t } = props;
 
   return (
     <>
@@ -108,9 +94,14 @@ const Users = props => {
           <div className="col text-right">
             <Badge
               color="primary"
-              style={{ cursor: 'pointer', fontSize: '0.9rem', padding: '8px 16px' }}
-              onClick={() => setAddModal(true)}>
-              + {t('Add User')}
+              style={{
+                cursor: "pointer",
+                fontSize: "0.9rem",
+                padding: "8px 16px",
+              }}
+              onClick={() => setAddModal(true)}
+            >
+              + {t("Add User")}
             </Badge>
           </div>
         </Row>
@@ -127,20 +118,21 @@ const Users = props => {
               <Query
                 query={GET_USERS}
                 variables={{ page: 0 }}
-                onError={error => {
-                  console.log(error)
-                }}>
+                onError={(error) => {
+                  console.log(error);
+                }}
+              >
                 {({ loading, error, data }) => {
                   if (error) {
                     return (
                       <Alert color="danger" className="m-3">
-                        {t('Error')}! {error.message}
+                        {t("Error")}! {error.message}
                       </Alert>
-                    )
+                    );
                   }
                   return (
                     <DataTable
-                      title={t('Users')}
+                      title={t("Users")}
                       columns={columns}
                       data={data && data.users ? data.users : []}
                       pagination
@@ -149,7 +141,7 @@ const Users = props => {
                       onSort={handleSort}
                       sortFunction={customSort}
                     />
-                  )
+                  );
                 }}
               </Query>
             </Card>
@@ -161,11 +153,12 @@ const Users = props => {
         className="modal-dialog-centered"
         size="lg"
         isOpen={addModal}
-        toggle={() => setAddModal(false)}>
+        toggle={() => setAddModal(false)}
+      >
         <UserForm onSuccess={() => setAddModal(false)} />
       </Modal>
     </>
-  )
-}
+  );
+};
 
-export default compose(withApollo, withTranslation())(Users)
+export default compose(withApollo, withTranslation())(Users);

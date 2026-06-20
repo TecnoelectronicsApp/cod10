@@ -5,6 +5,35 @@ const { hashPassword, PLACEHOLDER_IMG } = require('./auth');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/cod10';
 
+const DEFAULT_ADMINS = [
+  {
+    email: (process.env.ADMIN_EMAIL || 'admin@codigo10.com').toLowerCase(),
+    password: process.env.ADMIN_PASSWORD || 'codigo10admin',
+    name: 'Admin Codigo 10',
+  },
+  {
+    email: 'admin@enatega.com',
+    password: 'enatega123',
+    name: 'Admin Enatega',
+  },
+];
+
+async function ensureAdmins() {
+  for (const admin of DEFAULT_ADMINS) {
+    const email = admin.email.toLowerCase();
+    const exists = await User.findOne({ email, role: 'admin' });
+    if (exists) continue;
+    await User.create({
+      name: admin.name,
+      email,
+      password: await hashPassword(admin.password),
+      role: 'admin',
+      is_active: true,
+    });
+    console.log('[seed] Admin creado:', email);
+  }
+}
+
 const MENU = [
   {
     category: 'Hamburguesas',
@@ -46,6 +75,7 @@ async function runSeed({ reset = false, disconnect = true } = {}) {
 
   const existingCategories = await Category.countDocuments();
   if (existingCategories > 0 && !reset) {
+    await ensureAdmins();
     console.log('[seed] Ya hay datos — omitiendo seed');
     if (disconnect && connectedHere) await mongoose.disconnect();
     return;
@@ -61,19 +91,10 @@ async function runSeed({ reset = false, disconnect = true } = {}) {
     ]);
   }
 
-  const adminEmail = (process.env.ADMIN_EMAIL || 'admin@codigo10.com').toLowerCase();
-  const adminPass = process.env.ADMIN_PASSWORD || 'codigo10admin';
+  const adminEmail = DEFAULT_ADMINS[0].email;
+  const adminPass = DEFAULT_ADMINS[0].password;
 
-  const adminExists = await User.countDocuments({ role: 'admin' });
-  if (adminExists === 0) {
-    await User.create({
-      name: 'Admin Codigo 10',
-      email: adminEmail,
-      password: await hashPassword(adminPass),
-      role: 'admin',
-      is_active: true,
-    });
-  }
+  await ensureAdmins();
 
   const configExists = await Configuration.countDocuments();
   if (configExists === 0) {
@@ -137,7 +158,7 @@ async function runSeed({ reset = false, disconnect = true } = {}) {
   if (disconnect && connectedHere) await mongoose.disconnect();
 }
 
-module.exports = { runSeed };
+module.exports = { runSeed, ensureAdmins };
 
 if (require.main === module) {
   runSeed({ reset: true, disconnect: true }).catch((err) => {

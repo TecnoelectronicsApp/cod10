@@ -115,7 +115,24 @@ export const categories = `query categories
           title
           description
           img_menu
+          sort_order
     }}`;
+
+export const reorderCategories = `
+  mutation ReorderCategories($ids: [ID!]!) {
+    reorderCategories(ids: $ids) {
+      _id
+      sort_order
+    }
+  }`;
+
+export const reorderFoods = `
+  mutation ReorderFoods($ids: [ID!]!) {
+    reorderFoods(ids: $ids) {
+      _id
+      sort_order
+    }
+  }`;
 
 export const subscribePlaceOrder = `subscription SubscribePaceOrder{
   subscribePlaceOrder{

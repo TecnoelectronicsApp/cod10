@@ -4,7 +4,7 @@ import { useMutation, ApolloProvider } from '@apollo/client/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { getApolloClient } from '@/lib/apollo-client';
+import { getApolloClient, resetApolloClients } from '@/lib/apollo-client';
 import { saveRiderAuth, getToken } from '@/lib/auth';
 import { RIDER_LOGIN } from '@/lib/graphql/operations';
 
@@ -23,6 +23,7 @@ function RiderLoginForm() {
       if (data && typeof data === 'object' && 'riderLogin' in data) {
         const r = (data as { riderLogin: { userId: string; token: string } }).riderLogin;
         saveRiderAuth(r.userId, r.token);
+        resetApolloClients();
       }
       router.push('/rider');
     } catch {

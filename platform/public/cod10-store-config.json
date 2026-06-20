@@ -32,5 +32,12 @@
     "secondarySymbol": "Bs.",
     "rateDate": "2026-06-19T00:00:00-04:00",
     "rateFetchedAt": "2026-06-19T12:00:00.000Z"
+  },
+  "storeLocation": {
+    "name": "Codigo 10",
+    "address": "Codigo 10 — Retiro en local",
+    "latitude": "10.490771409353307",
+    "longitude": "-66.95274734821183",
+    "details": "Retiro en mostrador"
   }
 }

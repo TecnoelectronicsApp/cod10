@@ -6,6 +6,7 @@ const typeDefs = `#graphql
     title: String!
     description: String
     img_menu: String
+    sort_order: Int
   }
 
   type Option {
@@ -39,6 +40,7 @@ const typeDefs = `#graphql
     img_url: String!
     stock: Int
     tag: String
+    sort_order: Int
     category: Category!
     variations: [Variation]
   }
@@ -69,6 +71,8 @@ const typeDefs = `#graphql
     _id: ID!
     name: String
     username: String
+    password: String
+    phone: String
     available: Boolean
   }
 
@@ -103,6 +107,10 @@ const typeDefs = `#graphql
     _id: ID!
     rating: Float
     description: String
+    createdAt: String
+    updatedAt: String
+    is_active: Boolean
+    order: Order
   }
 
   type Configuration {
@@ -161,6 +169,7 @@ const typeDefs = `#graphql
 
   type Coupon {
     _id: ID!
+    code: String
     title: String
     discount: Float
     enabled: Boolean
@@ -172,6 +181,13 @@ const typeDefs = `#graphql
     details: String
     latitude: String
     longitude: String
+  }
+
+  input OrderCustomerInput {
+    name: String
+    phone: String
+    delivery_address: String
+    details: String
   }
 
   input VariationInput {
@@ -270,9 +286,18 @@ const typeDefs = `#graphql
 
   input CouponInput {
     _id: ID
-    title: String!
+    code: String!
     discount: Float
     enabled: Boolean
+  }
+
+  input RiderInput {
+    _id: ID
+    name: String!
+    username: String!
+    password: String
+    phone: String
+    available: Boolean
   }
 
   type Query {
@@ -296,6 +321,7 @@ const typeDefs = `#graphql
     coupons: [Coupon!]!
     Coupons: [Coupon!]!
     reviews(offset: Int): [Review!]!
+    allReviews(offset: Int): [Review!]!
     riders: [Rider!]!
     availableRiders: [Rider!]!
     assignedOrders(id: String!): [Order!]!
@@ -306,6 +332,8 @@ const typeDefs = `#graphql
     getDashboardData(starting_date: String, ending_date: String): DashboardData!
     orderStatuses: [String!]!
     paymentStatuses: [String!]!
+    getOrderStatuses: [String!]!
+    getPaymentStatuses: [String!]!
   }
 
   type Mutation {
@@ -318,9 +346,12 @@ const typeDefs = `#graphql
     createCategory(category: CategoryInput!): Category!
     editCategory(category: CategoryInput!): Category!
     deleteCategory(id: String!): Category!
+    reorderCategories(ids: [ID!]!): [Category!]!
+    reorderFoods(ids: [ID!]!): [Food!]!
     placeOrder(orderInput: [OrderInput!]!, paymentMethod: String!, address: AddressInput!, couponCode: String): Order!
     updateOrderStatus(id: String!, status: String!, reason: String): Order!
     updatePaymentStatus(id: String!, status: String!): Order!
+    updateOrderKitchenDetails(id: String!, input: OrderCustomerInput!): Order!
     updateStatus(id: String!, status: Boolean!, reason: String): User!
     saveDeliveryConfiguration(configurationInput: DeliveryConfigurationInput!): Configuration!
     saveCurrencyConfiguration(configurationInput: CurrencyConfigurationInput!): Configuration!
@@ -338,12 +369,13 @@ const typeDefs = `#graphql
     createCoupon(couponInput: CouponInput!): Coupon!
     editCoupon(couponInput: CouponInput!): Coupon!
     deleteCoupon(id: String!): Coupon!
-    createRider(riderInput: JSON): Rider!
-    editRider(riderInput: JSON): Rider!
+    createRider(riderInput: RiderInput!): Rider!
+    editRider(riderInput: RiderInput!): Rider!
     deleteRider(id: String!): Rider!
+    toggleAvailablity(id: String): Rider!
     assignRider(id: String!, riderId: String!): Order!
-    assignOrder(id: String!): Order!
-    updateOrderStatusRider(id: String!, status: String!): Order!
+    assignOrder(id: String!, riderId: String!): Order!
+    updateOrderStatusRider(id: String!, status: String!, riderId: String): Order!
     uploadToken(pushToken: String!): User!
     sendNotificationUser(notificationTitle: String, notificationBody: String!): Boolean!
     resetPassword(password: String!, token: String!): Boolean!

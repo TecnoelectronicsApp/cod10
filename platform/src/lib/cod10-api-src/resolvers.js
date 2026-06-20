@@ -1,8 +1,22 @@
 const mongoose = require('mongoose');
 const { Addon, Category, Food, User, Order, Configuration, Coupon } = require('./models');
-const { signToken, comparePassword, hashPassword } = require('./auth');
+const { signToken, comparePassword, hashPassword, normalizePhone, phoneAuthEmail } = require('./auth');
+const { calcDeliveryFeeFromAddress } = require('./delivery-pricing');
 
 const PLACEHOLDER_IMG = 'https://placehold.co/600x400/f97316/ffffff?text=Codigo+10';
+
+async function nextSortOrder(Model) {
+  const last = await Model.findOne().sort({ sort_order: -1 }).select('sort_order').lean();
+  return (last?.sort_order ?? -1) + 1;
+}
+
+async function applySortOrder(Model, ids) {
+  if (!ids?.length) return [];
+  await Promise.all(
+    ids.map((id, index) => Model.findByIdAndUpdate(id, { sort_order: index }))
+  );
+  return Model.find({ _id: { $in: ids } }).sort({ sort_order: 1, title: 1 });
+}
 
 async function getConfig() {
   let cfg = await Configuration.findOne();
@@ -52,23 +66,47 @@ function buildLoginResponse(user) {
 
 async function mapOrder(order) {
   if (!order) return null;
-  const o = order.toObject ? order.toObject() : order;
+  const o = order.toObject
+    ? order.toObject({ flattenMaps: true })
+    : JSON.parse(JSON.stringify(order));
   o._id = String(o._id);
   o.createdAt = o.createdAt ? new Date(o.createdAt).toISOString() : new Date().toISOString();
-  if (o.user && o.user._id) o.user._id = String(o.user._id);
-  if (o.rider && o.rider._id) o.rider._id = String(o.rider._id);
+
+  if (o.user?._id) {
+    o.user = { ...o.user, _id: String(o.user._id) };
+  }
+
+  if (o.rider) {
+    const riderRef = typeof o.rider === 'object' && o.rider._id != null ? o.rider._id : o.rider;
+    o.rider =
+      typeof o.rider === 'object' && o.rider.name
+        ? { ...o.rider, _id: String(o.rider._id) }
+        : { _id: String(riderRef) };
+  }
+
   if (o.items) {
-    for (const item of o.items) {
-      if (item.food && item.food._id) item.food._id = String(item.food._id);
-      if (item.variation && item.variation._id) item.variation._id = String(item.variation._id);
-      if (item.addons) {
-        item.addons = item.addons.map((a) => ({
+    o.items = o.items.map((item) => {
+      const mapped = { ...item };
+      if (mapped.food?._id) {
+        mapped.food = { ...mapped.food, _id: String(mapped.food._id) };
+      }
+      if (mapped.variation) {
+        mapped.variation = {
+          ...mapped.variation,
+          _id: mapped.variation._id ? String(mapped.variation._id) : undefined,
+        };
+      }
+      if (mapped.addons) {
+        mapped.addons = mapped.addons.map((a) => ({
           ...a,
           _id: a._id ? String(a._id) : undefined,
         }));
       }
-      item._id = item._id ? String(item._id) : new mongoose.Types.ObjectId().toString();
-    }
+      mapped._id = mapped._id
+        ? String(mapped._id)
+        : new mongoose.Types.ObjectId().toString();
+      return mapped;
+    });
   }
   return o;
 }
@@ -78,17 +116,79 @@ function requireUser(context) {
   return context.user;
 }
 
+function requireAdmin(context) {
+  const auth = requireUser(context);
+  if (auth.role !== 'admin') throw new Error('Solo administradores');
+  return auth;
+}
+
+function requireRider(context) {
+  const auth = requireUser(context);
+  if (auth.role !== 'rider') throw new Error('Solo repartidores');
+  return auth;
+}
+
+async function findCustomerByLogin(email, password) {
+  const emailLower = String(email || '').toLowerCase();
+  let user = await User.findOne({ email: emailLower, role: 'customer' });
+
+  if (!user && emailLower.endsWith('@wa.cod10.app')) {
+    const rawPhone = emailLower.replace('@wa.cod10.app', '');
+    const normalized = normalizePhone(rawPhone);
+    const localPhone =
+      rawPhone.startsWith('0') && rawPhone.length === 11
+        ? rawPhone
+        : normalized.startsWith('58') && normalized.length === 12
+          ? `0${normalized.slice(2)}`
+          : rawPhone;
+
+    user = await User.findOne({
+      role: 'customer',
+      $or: [
+        { email: emailLower },
+        { email: `${rawPhone}@wa.cod10.app` },
+        { email: `${normalized}@wa.cod10.app` },
+        { email: `${localPhone}@wa.cod10.app` },
+        { phone: rawPhone },
+        { phone: normalized },
+        { phone: localPhone },
+      ],
+    });
+  }
+
+  if (!user || !(await comparePassword(password, user.password))) {
+    return null;
+  }
+
+  return user;
+}
+
+function mapRider(doc) {
+  if (!doc) return null;
+  const obj = doc.toObject ? doc.toObject() : doc;
+  return {
+    _id: String(obj._id),
+    name: obj.name || '',
+    username: obj.username || '',
+    password: obj.password || '',
+    phone: obj.phone || '',
+    available: obj.available !== false,
+  };
+}
+
 function createResolvers(pubsub) {
   return {
     Query: {
-      categories: async () => Category.find().sort({ title: 1 }),
+      categories: async () => Category.find().sort({ sort_order: 1, title: 1 }),
       allCategories: async (_, { page }) => {
         const skip = (page || 0) * 50;
-        return Category.find().skip(skip).limit(50).sort({ title: 1 });
+        return Category.find().skip(skip).limit(50).sort({ sort_order: 1, title: 1 });
       },
       foods: async (_, { page }) => {
         const skip = (page || 0) * 100;
-        const list = await populateFood(Food.find().skip(skip).limit(100).sort({ createdAt: -1 }));
+        const list = await populateFood(
+          Food.find().skip(skip).limit(100).sort({ sort_order: 1, title: 1 })
+        );
         return list.map((f) => {
           const doc = mapId(f);
           doc.img_url = doc.img_url || PLACEHOLDER_IMG;
@@ -107,7 +207,7 @@ function createResolvers(pubsub) {
         const query = { category };
         if (inStock) query.stock = { $gt: 0 };
         if (search) query.title = { $regex: search, $options: 'i' };
-        const list = await populateFood(Food.find(query).sort({ title: 1 }));
+        const list = await populateFood(Food.find(query).sort({ sort_order: 1, title: 1 }));
         return list.map((f) => {
           const doc = mapId(f);
           doc.img_url = doc.img_url || PLACEHOLDER_IMG;
@@ -131,8 +231,9 @@ function createResolvers(pubsub) {
       },
       orderCount: async () => Order.countDocuments(),
       orders: async (_, { offset }, context) => {
-        const user = requireUser(context);
-        const orders = await Order.find({ user: user.userId })
+        const auth = requireUser(context);
+        const orders = await Order.find({ user: auth.userId })
+          .populate('user')
           .populate('items.food')
           .sort({ createdAt: -1 })
           .skip(offset || 0)
@@ -170,11 +271,19 @@ function createResolvers(pubsub) {
       coupons: async () => Coupon.find(),
       Coupons: async () => Coupon.find(),
       reviews: async () => [],
-      riders: async () => User.find({ role: 'rider' }),
-      availableRiders: async () => User.find({ role: 'rider', is_active: true }),
+      allReviews: async () => [],
+      riders: async () => {
+        const list = await User.find({ role: 'rider' });
+        return list.map(mapRider);
+      },
+      availableRiders: async () => {
+        const list = await User.find({ role: 'rider', available: { $ne: false } });
+        return list.map(mapRider);
+      },
       assignedOrders: async (_, { id }) => {
         const orders = await Order.find({ rider: id })
           .populate('user')
+          .populate('rider')
           .populate('items.food')
           .sort({ createdAt: -1 });
         return Promise.all(orders.map(mapOrder));
@@ -209,8 +318,10 @@ function createResolvers(pubsub) {
         total_sales: 0,
         orders: [],
       }),
-      orderStatuses: () => ['PENDING', 'ACCEPTED', 'ASSIGNED', 'PICKED', 'DELIVERED', 'CANCELLED'],
+      orderStatuses: () => ['PENDING', 'ACCEPTED', 'ASSIGNED', 'READY', 'PICKED', 'DELIVERED', 'CANCELLED'],
       paymentStatuses: () => ['PENDING', 'PAID'],
+      getOrderStatuses: () => ['PENDING', 'ACCEPTED', 'ASSIGNED', 'READY', 'PICKED', 'DELIVERED', 'CANCELLED'],
+      getPaymentStatuses: () => ['PENDING', 'PAID'],
     },
 
     Mutation: {
@@ -242,10 +353,8 @@ function createResolvers(pubsub) {
             });
           }
         } else {
-          user = await User.findOne({ email: email.toLowerCase(), role: 'customer' });
-          if (!user || !(await comparePassword(password, user.password))) {
-            throw new Error('Credenciales inválidas');
-          }
+          user = await findCustomerByLogin(email, password);
+          if (!user) throw new Error('Credenciales inválidas');
         }
         if (notificationToken) {
           user.push_token = notificationToken;
@@ -254,12 +363,17 @@ function createResolvers(pubsub) {
         return buildLoginResponse(user);
       },
       createUser: async (_, { userInput }) => {
-        const exists = await User.findOne({ email: userInput.email.toLowerCase() });
+        const emailLower = userInput.email.toLowerCase();
+        const phone = userInput.phone || '';
+        const exists = await User.findOne({
+          role: 'customer',
+          $or: [{ email: emailLower }, ...(phone ? [{ phone }] : [])],
+        });
         if (exists) throw new Error('El email ya está registrado');
         const user = await User.create({
           name: userInput.name,
-          email: userInput.email.toLowerCase(),
-          phone: userInput.phone,
+          email: emailLower,
+          phone,
           password: await hashPassword(userInput.password),
           role: 'customer',
           is_active: true,
@@ -279,6 +393,7 @@ function createResolvers(pubsub) {
           img_url: foodInput.img_url || PLACEHOLDER_IMG,
           category: foodInput.category,
           stock: Number(foodInput.stock ?? 100),
+          sort_order: await nextSortOrder(Food),
           variations,
         });
         const populated = await populateFood(Food.findById(food._id));
@@ -308,13 +423,24 @@ function createResolvers(pubsub) {
         if (!food) throw new Error('Producto no encontrado');
         return mapId(food);
       },
-      createCategory: async (_, { category }) => Category.create(category),
+      createCategory: async (_, { category }) =>
+        Category.create({ ...category, sort_order: await nextSortOrder(Category) }),
       editCategory: async (_, { category }) =>
         Category.findByIdAndUpdate(category._id, category, { new: true }),
       deleteCategory: async (_, { id }) => {
         const cat = await Category.findByIdAndDelete(id);
         if (!cat) throw new Error('Categoría no encontrada');
         return cat;
+      },
+      reorderCategories: async (_, { ids }) => applySortOrder(Category, ids),
+      reorderFoods: async (_, { ids }) => {
+        await applySortOrder(Food, ids);
+        const list = await populateFood(Food.find({ _id: { $in: ids } }).sort({ sort_order: 1, title: 1 }));
+        return list.map((f) => {
+          const doc = mapId(f);
+          doc.img_url = doc.img_url || PLACEHOLDER_IMG;
+          return doc;
+        });
       },
       placeOrder: async (_, { orderInput, paymentMethod, address }, context) => {
         const auth = requireUser(context);
@@ -323,8 +449,7 @@ function createResolvers(pubsub) {
         let subtotal = 0;
 
         for (const line of orderInput) {
-          const food = await populateFood(Food.findById(line.food));
-          const f = food[0] || food;
+          const f = await populateFood(Food.findById(line.food));
           if (!f) throw new Error('Producto no encontrado');
           const variation = (f.variations || []).find((v) => String(v._id) === String(line.variation));
           if (!variation) throw new Error('Variación no encontrada');
@@ -371,12 +496,13 @@ function createResolvers(pubsub) {
         cfg.order_counter = (cfg.order_counter || 1000) + 1;
         await cfg.save();
         const orderId = `${cfg.order_id_prefix || 'COD10-'}${cfg.order_counter}`;
-        const delivery = Number(cfg.delivery_charges || 0);
+        const isPickup = String(address.label || '').toLowerCase() === 'pickup';
+        const delivery = calcDeliveryFeeFromAddress(address);
         const total = subtotal + delivery;
 
         const order = await Order.create({
           order_id: orderId,
-          user: auth.userId,
+          user: new mongoose.Types.ObjectId(auth.userId),
           items,
           delivery_address: address,
           delivery_charges: delivery,
@@ -395,19 +521,58 @@ function createResolvers(pubsub) {
         return mapped;
       },
       updateOrderStatus: async (_, { id, status, reason }) => {
-        const order = await Order.findByIdAndUpdate(
-          id,
-          { order_status: status, reason: reason || '' },
-          { new: true }
-        )
+        const patch = { order_status: status, reason: reason || '' };
+        if (['PENDING', 'ACCEPTED'].includes(status)) {
+          patch.rider = null;
+        }
+        const order = await Order.findByIdAndUpdate(id, patch, { new: true })
           .populate('user')
+          .populate('rider')
           .populate('items.food');
         const mapped = await mapOrder(order);
         pubsub.publish('ORDER_PLACED', { subscribePlaceOrder: { origin: 'update', order: mapped } });
         return mapped;
       },
-      updatePaymentStatus: async (_, { id, status }) =>
-        Order.findByIdAndUpdate(id, { payment_status: status }, { new: true }),
+      updatePaymentStatus: async (_, { id, status }) => {
+        const order = await Order.findByIdAndUpdate(
+          id,
+          { payment_status: status },
+          { new: true }
+        )
+          .populate('user')
+          .populate('items.food');
+        return mapOrder(order);
+      },
+      updateOrderKitchenDetails: async (_, { id, input }, context) => {
+        requireAdmin(context);
+        const order = await Order.findById(id);
+        if (!order) throw new Error('Pedido no encontrado');
+
+        if (input.name != null || input.phone != null) {
+          const user = await User.findById(order.user);
+          if (user) {
+            if (input.name != null) user.name = input.name;
+            if (input.phone != null) user.phone = input.phone;
+            await user.save();
+          }
+        }
+
+        if (input.delivery_address != null || input.details != null) {
+          const addr = order.delivery_address?.toObject?.() || order.delivery_address || {};
+          if (input.delivery_address != null) addr.delivery_address = input.delivery_address;
+          if (input.details != null) addr.details = input.details;
+          order.delivery_address = addr;
+          order.markModified('delivery_address');
+        }
+
+        await order.save();
+        const populated = await Order.findById(id)
+          .populate('user')
+          .populate('items.food');
+        const mapped = await mapOrder(populated);
+        pubsub.publish('ORDER_PLACED', { subscribePlaceOrder: { origin: 'update', order: mapped } });
+        return mapped;
+      },
       updateStatus: async (_, { id, status, reason }) =>
         User.findByIdAndUpdate(id, { is_active: status, reason }, { new: true }),
       saveDeliveryConfiguration: async (_, { configurationInput }) => {
@@ -465,24 +630,157 @@ function createResolvers(pubsub) {
       createOptions: async () => [],
       editOption: async () => null,
       deleteOption: async () => null,
-      createCoupon: async (_, { couponInput }) => Coupon.create(couponInput),
-      editCoupon: async (_, { couponInput }) => Coupon.findByIdAndUpdate(couponInput._id, couponInput, { new: true }),
-      deleteCoupon: async (_, { id }) => Coupon.findByIdAndDelete(id),
-      createRider: async () => ({ _id: '0', name: 'Rider', username: 'rider', available: true }),
-      editRider: async () => ({ _id: '0', name: 'Rider', username: 'rider', available: true }),
-      deleteRider: async () => ({ _id: '0' }),
-      assignRider: async (_, { id, riderId }) =>
-        Order.findByIdAndUpdate(id, { rider: riderId, order_status: 'ASSIGNED' }, { new: true }),
-      assignOrder: async (_, { id }, context) => {
-        const auth = requireUser(context);
-        return Order.findByIdAndUpdate(
-          id,
-          { rider: auth.userId, order_status: 'ASSIGNED' },
+      createCoupon: async (_, { couponInput }) =>
+        Coupon.create({
+          code: couponInput.code,
+          title: couponInput.code,
+          discount: couponInput.discount,
+          enabled: couponInput.enabled ?? false,
+        }),
+      editCoupon: async (_, { couponInput }) =>
+        Coupon.findByIdAndUpdate(
+          couponInput._id,
+          {
+            code: couponInput.code,
+            title: couponInput.code,
+            discount: couponInput.discount,
+            enabled: couponInput.enabled,
+          },
           { new: true }
-        );
+        ),
+      deleteCoupon: async (_, { id }) => Coupon.findByIdAndDelete(id),
+      createRider: async (_, { riderInput }) => {
+        const { name, username, password, phone, available } = riderInput;
+        if (!name || !username || !password) {
+          throw new Error('Nombre, usuario y contraseña son requeridos');
+        }
+        const exists = await User.findOne({ username, role: 'rider' });
+        if (exists) throw new Error('El usuario ya existe');
+        const rider = await User.create({
+          name,
+          username,
+          password,
+          phone,
+          available: available !== false,
+          role: 'rider',
+          is_active: true,
+        });
+        return mapRider(rider);
       },
-      updateOrderStatusRider: async (_, { id, status }) =>
-        Order.findByIdAndUpdate(id, { order_status: status }, { new: true }),
+      editRider: async (_, { riderInput }) => {
+        const { _id, name, username, password, phone, available } = riderInput;
+        if (!_id) throw new Error('ID requerido');
+        const updates = { name, username, phone, available };
+        if (password) updates.password = password;
+        const rider = await User.findOneAndUpdate({ _id, role: 'rider' }, updates, { new: true });
+        if (!rider) throw new Error('Repartidor no encontrado');
+        return mapRider(rider);
+      },
+      deleteRider: async (_, { id }) => {
+        const rider = await User.findOneAndDelete({ _id: id, role: 'rider' });
+        if (!rider) throw new Error('Repartidor no encontrado');
+        return mapRider(rider);
+      },
+      toggleAvailablity: async (_, { id }) => {
+        const rider = await User.findOne({ _id: id, role: 'rider' });
+        if (!rider) throw new Error('Repartidor no encontrado');
+        rider.available = !rider.available;
+        await rider.save();
+        return mapRider(rider);
+      },
+      assignRider: async (_, { id, riderId }) => {
+        const order = await Order.findById(id);
+        if (!order) throw new Error('Pedido no encontrado');
+        if (!['ACCEPTED', 'ASSIGNED'].includes(order.order_status)) {
+          throw new Error('El pedido debe estar aceptado en cocina antes de asignar repartidor');
+        }
+        const updated = await Order.findByIdAndUpdate(
+          id,
+          { rider: riderId, order_status: 'ASSIGNED' },
+          { new: true }
+        )
+          .populate('user')
+          .populate('rider')
+          .populate('items.food');
+        return mapOrder(updated);
+      },
+      assignOrder: async (_, { id, riderId: argRiderId }, context) => {
+        const auth = context.user;
+        let riderUserId = null;
+
+        if (auth?.role === 'rider') {
+          riderUserId = String(auth.userId);
+        } else if (auth?.role === 'admin' && argRiderId) {
+          riderUserId = String(argRiderId);
+        } else if (argRiderId) {
+          const rider = await User.findOne({
+            _id: argRiderId,
+            role: 'rider',
+            is_active: { $ne: false },
+          });
+          if (!rider) throw new Error('Repartidor no encontrado');
+          riderUserId = String(argRiderId);
+        } else {
+          throw new Error('No autorizado');
+        }
+
+        if (argRiderId && String(argRiderId) !== riderUserId) {
+          throw new Error('No autorizado');
+        }
+
+        const order = await Order.findById(id);
+        if (!order) throw new Error('Pedido no encontrado');
+        if (order.rider) throw new Error('Pedido ya asignado a otro repartidor');
+        if (order.order_status !== 'ACCEPTED') {
+          throw new Error('El pedido no está disponible para tomar');
+        }
+
+        const updated = await Order.findByIdAndUpdate(
+          id,
+          { rider: riderUserId, order_status: 'ASSIGNED' },
+          { new: true }
+        )
+          .populate('user')
+          .populate('rider')
+          .populate('items.food');
+        const mapped = await mapOrder(updated);
+        pubsub.publish('ORDER_PLACED', { subscribePlaceOrder: { origin: 'assign', order: mapped } });
+        return mapped;
+      },
+      updateOrderStatusRider: async (_, { id, status, riderId: argRiderId }, context) => {
+        const auth = context.user;
+        const existing = await Order.findById(id);
+        if (!existing) throw new Error('Pedido no encontrado');
+
+        const orderRiderId = existing.rider ? String(existing.rider) : null;
+        if (auth?.role === 'rider') {
+          if (orderRiderId && orderRiderId !== String(auth.userId)) {
+            throw new Error('No autorizado');
+          }
+        } else if (argRiderId) {
+          if (orderRiderId && orderRiderId !== String(argRiderId)) {
+            throw new Error('No autorizado');
+          }
+        } else if (!auth) {
+          throw new Error('No autorizado');
+        }
+
+        if (status === 'PICKED' && existing.order_status !== 'READY') {
+          throw new Error('Cocina aún no marcó el pedido como listo');
+        }
+
+        const order = await Order.findByIdAndUpdate(
+          id,
+          { order_status: status },
+          { new: true }
+        )
+          .populate('user')
+          .populate('rider')
+          .populate('items.food');
+        const mapped = await mapOrder(order);
+        pubsub.publish('ORDER_PLACED', { subscribePlaceOrder: { origin: 'update', order: mapped } });
+        return mapped;
+      },
       uploadToken: async (_, { pushToken }, context) => {
         const auth = requireUser(context);
         return User.findByIdAndUpdate(auth.userId, { push_token: pushToken }, { new: true });
@@ -509,6 +807,9 @@ function createResolvers(pubsub) {
     },
     Order: {
       review: () => null,
+    },
+    Coupon: {
+      code: (parent) => parent.code || parent.title || '',
     },
     User: {
       status: (parent) => parent.is_active,

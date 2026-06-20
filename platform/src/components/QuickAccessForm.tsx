@@ -48,7 +48,15 @@ function GoogleSignInButton({
   useEffect(() => {
     if (!ready || !clientId || disabled) return;
 
-    const google = (window as Window & { google?: { accounts: { id: { initialize: (c: object) => void; renderButton: (el: HTMLElement, c: object) => void } } } }).google;
+    type GsiGoogle = {
+      accounts?: {
+        id?: {
+          initialize: (c: Record<string, unknown>) => void;
+          renderButton: (el: HTMLElement, c: Record<string, unknown>) => void;
+        };
+      };
+    };
+    const google = (window as unknown as { google?: GsiGoogle }).google;
     if (!google?.accounts?.id) return;
 
     const container = document.getElementById('google-signin-btn');

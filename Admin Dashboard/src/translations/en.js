@@ -11,6 +11,7 @@ const en = {
     Success: "Success",
     Danger: "Danger",
     Categories: "Categories",
+    "Drag to reorder": "Drag ⠿ to set display order",
     Image: "Image",
     Header: "Header",
     Loading: "Loading",

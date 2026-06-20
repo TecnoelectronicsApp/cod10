@@ -5,11 +5,14 @@ import { Query, Mutation, compose, withApollo } from "react-apollo";
 import { withTranslation } from "react-i18next";
 import { Badge, Card, Container, Row, Media, Modal, Spinner } from "reactstrap";
 import Header from "../components/Headers/Header.jsx";
-import { getFoodsList, deleteFood, foodByIds } from "../apollo/server";
+import {
+  getFoodsList,
+  deleteFood,
+  foodByIds,
+  reorderFoods,
+} from "../apollo/server";
 import FoodComponent from "../components/Food/Food";
-import CustomLoader from "../components/Loader/CustomLoader";
-import DataTable from "react-data-table-component";
-import orderBy from "lodash/orderBy";
+import SortableDataTable from "../components/SortableDataTable";
 import { transformToNewline } from "../utils/stringManipulations";
 import Loader from "react-loader-spinner";
 import Alert from "../components/Alert";
@@ -23,6 +26,9 @@ const GET_FOOD_DETAIL = gql`
 `;
 const DELETE_FOOD = gql`
   ${deleteFood}
+`;
+const REORDER_FOODS = gql`
+  ${reorderFoods}
 `;
 
 const Food = (props) => {
@@ -85,25 +91,6 @@ const Food = (props) => {
     }
   };
 
-  const propExists = (obj, path) => {
-    return path.split(".").reduce((obj, prop) => {
-      return obj && obj[prop] ? obj[prop] : "";
-    }, obj);
-  };
-
-  const customSort = (rows, field, direction) => {
-    const handleField = (row) => {
-      if (field && isNaN(propExists(row, field))) {
-        return propExists(row, field).toLowerCase();
-      }
-      return row[field];
-    };
-    return orderBy(rows, handleField, direction);
-  };
-
-  const handleSort = (column, sortDirection) =>
-    console.log(column.selector, sortDirection);
-
   const actionButtons = (row) => {
     return (
       <>
@@ -156,7 +143,6 @@ const Food = (props) => {
     {
       name: t("Title"),
       selector: "title",
-      sortable: true,
       cell: (row) => (
         <Media>
           <span className="mb-0 text-sm">{row.title}</span>
@@ -165,14 +151,11 @@ const Food = (props) => {
     },
     {
       name: t("Description"),
-      sortable: true,
       selector: "description",
       cell: (row) => <>{transformToNewline(row.description, 3)}</>,
     },
     {
       name: t("Category"),
-      sortable: true,
-      selector: "category.title",
       cell: (row) => <>{row.category && row.category.title}</>,
     },
     {
@@ -188,6 +171,7 @@ const Food = (props) => {
     },
     {
       name: t("Action"),
+      skipDropWrap: true,
       cell: (row) => <>{actionButtons(row)}</>,
     },
   ];
@@ -220,17 +204,31 @@ const Food = (props) => {
                           {t("Error")}! {formatGraphqlError(error)}
                         </div>
                       )}
-                      <DataTable
-                        title={t("Foods")}
-                        columns={columns}
-                        data={(data && data.foods) || []}
-                        pagination
-                        progressPending={loading}
-                        progressComponent={<CustomLoader />}
-                        onSort={handleSort}
-                        sortFunction={customSort}
-                        defaultSortField="title"
-                      />
+                      <Mutation
+                        mutation={REORDER_FOODS}
+                        refetchQueries={[
+                          { query: GET_FOODS_LIST, variables: { page: 0 } },
+                        ]}
+                      >
+                        {(reorderMutate, { loading: reordering }) => (
+                          <SortableDataTable
+                            title={t("Foods")}
+                            columns={columns}
+                            data={(data && data.foods) || []}
+                            loading={loading}
+                            reordering={reordering}
+                            onReorder={(ids) =>
+                              reorderMutate({ variables: { ids } }).then(
+                                function (r) {
+                                  return r;
+                                }
+                              )
+                            }
+                            hint={t("Drag to reorder")}
+                            t={t}
+                          />
+                        )}
+                      </Mutation>
                     </Card>
                   </div>
                 </Row>

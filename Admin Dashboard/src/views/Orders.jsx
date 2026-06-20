@@ -33,7 +33,7 @@ const Orders = (props) => {
               <Query
                 query={GET_ORDERS}
                 variables={{ page: page - 1, rows: rowsPerPage, search }}
-                fetchPolicy="cache-and-network"
+                fetchPolicy="network-only"
                 notifyOnNetworkStatusChange
               >
                 {({ loading, error, data, subscribeToMore, refetch }) => (
@@ -49,6 +49,8 @@ const Orders = (props) => {
                     setSearch={setSearch}
                     setPage={setPage}
                     setRowsPerPage={setRowsPerPage}
+                    currentPage={page}
+                    rowsPerPage={rowsPerPage}
                   />
                 )}
               </Query>

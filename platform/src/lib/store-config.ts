@@ -11,8 +11,17 @@ export type PaymentMethodConfig = {
   payId?: string;
 };
 
+export type StoreLocation = {
+  name: string;
+  address: string;
+  latitude: string;
+  longitude: string;
+  details?: string;
+};
+
 export type StoreConfig = {
   paymentMethods: PaymentMethodConfig[];
+  storeLocation?: StoreLocation;
   multiCurrency?: {
     enabled?: boolean;
     exchangeRate?: number;
@@ -20,6 +29,14 @@ export type StoreConfig = {
     rateDate?: string | null;
     rateFetchedAt?: string | null;
   };
+};
+
+const DEFAULT_STORE_LOCATION: StoreLocation = {
+  name: 'Codigo 10',
+  address: 'Local Codigo 10',
+  latitude: '10.490771409353307',
+  longitude: '-66.95274734821183',
+  details: 'Retiro en mostrador',
 };
 
 const DEFAULT_CONFIG: StoreConfig = {
@@ -70,6 +87,10 @@ function normalizeStoreConfig(config: StoreConfig | null): StoreConfig {
       });
       return merged;
     }),
+    storeLocation: {
+      ...DEFAULT_STORE_LOCATION,
+      ...(config?.storeLocation || {}),
+    },
     multiCurrency: {
       ...DEFAULT_CONFIG.multiCurrency,
       ...(config && config.multiCurrency ? config.multiCurrency : {}),

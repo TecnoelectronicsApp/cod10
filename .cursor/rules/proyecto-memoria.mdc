@@ -38,8 +38,10 @@ Un solo archivo de memoria: **`MEMORIA.md`**. No crear otros archivos de changel
 
 ## 4. Recordatorios del proyecto
 
+- **UX primero:** la experiencia y facilidad para el usuario es lo primordial — checkout, mapa, pedidos y admin deben ser intuitivos (móvil y PC) antes que optimizaciones técnicas o atajos
 - Backend GraphQL es **externo** (Railway demo); no está en el repo
 - Admin: **sin optional chaining** (`?.`); usar `npm install --legacy-peer-deps`
 - API demo **no permite eliminar usuarios** (`deleteUser` no existe)
-- Productos requieren **`img_url`** válido al guardar
+- Productos requiere **`img_url`** válido al guardar
 - Responder siempre **en español**
+- **Checkout / ubicación de entrega:** **Google Maps obligatorio** — prohibido Leaflet, OpenStreetMap u otro mapa alternativo. Usar `@googlemaps/js-api-loader` + `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` **WEB** (referrer HTTP), nunca la key Android de CustomerApp/RiderApp (`ApiTargetBlockedMapError`)

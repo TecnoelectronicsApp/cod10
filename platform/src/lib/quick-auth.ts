@@ -1,4 +1,4 @@
-/** Normaliza teléfono venezolano u internacional a solo dígitos (ej. 584126733360). */
+/** Normaliza teléfono venezolano u internacional a solo dígitos (ej. 58412xxxxxxx). */
 export function normalizePhone(input: string): string {
   let digits = input.replace(/\D/g, '');
   if (!digits) return '';

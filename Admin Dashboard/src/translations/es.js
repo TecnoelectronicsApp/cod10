@@ -12,6 +12,7 @@ const es = {
     Success: "Éxito",
     Danger: "Error",
     Categories: "Categorías",
+    "Drag to reorder": "Arrastra ⠿ para ordenar cómo se muestran",
     Image: "Imagen",
     Header: "Encabezado",
     Loading: "Cargando",

@@ -25,6 +25,13 @@ const CONFIG = {
     rateDate: '2026-06-19T00:00:00-04:00',
     rateFetchedAt: new Date().toISOString(),
   },
+  storeLocation: {
+    name: 'Codigo 10',
+    address: 'Codigo 10 — Retiro en local',
+    latitude: '10.467094',
+    longitude: '-66.575498',
+    details: 'Retiro en mostrador',
+  },
 };
 
 const fd = new FormData();

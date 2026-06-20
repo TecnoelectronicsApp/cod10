@@ -35,7 +35,8 @@ async function connectMongo() {
 
   if (!cached.seeded) {
     const { Category } = require('./models');
-    const { runSeed } = require('./seed');
+    const { runSeed, ensureAdmins } = require('./seed');
+    await ensureAdmins();
     const n = await Category.countDocuments();
     if (n === 0) {
       await runSeed({ reset: false, disconnect: false });

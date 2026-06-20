@@ -10,13 +10,15 @@ import {
   ALL_ORDERS,
   SUBSCRIBE_PLACE_ORDER,
   UPDATE_ORDER_STATUS,
+  UPDATE_ORDER_KITCHEN,
+  UPDATE_PAYMENT_STATUS,
 } from '@/lib/graphql/operations';
 import { playKitchenBell } from '@/lib/kitchen-sound';
 import { Order } from '@/lib/types';
-import OrderCard from '@/components/OrderCard';
+import OrderCard, { KitchenCustomerInput } from '@/components/OrderCard';
 
 const REFRESH_SECONDS = 10;
-const KITCHEN_STATUSES = ['PENDING', 'ACCEPTED'];
+const KITCHEN_STATUSES = ['PENDING', 'ACCEPTED', 'ASSIGNED'];
 
 function filterKitchenOrders(list: Order[]) {
   return list.filter((o) => KITCHEN_STATUSES.includes(o.order_status));
@@ -72,6 +74,30 @@ function KitchenBoard() {
   });
 
   const [updateStatus] = useMutation(UPDATE_ORDER_STATUS);
+  const [updateKitchen, { loading: savingKitchen }] = useMutation(UPDATE_ORDER_KITCHEN);
+  const [updatePayment] = useMutation(UPDATE_PAYMENT_STATUS);
+
+  const handleSaveCustomer = async (orderId: string, input: KitchenCustomerInput) => {
+    await updateKitchen({ variables: { id: orderId, input } });
+    await doRefresh();
+  };
+
+  const handlePaymentStatus = async (orderId: string, status: 'PAID' | 'PENDING') => {
+    await updatePayment({ variables: { id: orderId, status } });
+    await doRefresh();
+  };
+
+  const renderKitchenCard = (order: Order, actions: React.ReactNode) => (
+    <OrderCard
+      key={order._id}
+      order={order}
+      variant="kitchen"
+      saving={savingKitchen}
+      onSaveCustomer={(input) => handleSaveCustomer(order._id, input)}
+      onPaymentStatusChange={(status) => handlePaymentStatus(order._id, status)}
+      actions={actions}
+    />
+  );
 
   useEffect(() => {
     if (!getToken('admin')) {
@@ -104,10 +130,17 @@ function KitchenBoard() {
   }, [countdown, doRefresh]);
 
   const pending = orders.filter((o) => o.order_status === 'PENDING');
-  const preparing = orders.filter((o) => o.order_status === 'ACCEPTED');
+  const preparing = orders.filter((o) =>
+    ['ACCEPTED', 'ASSIGNED'].includes(o.order_status)
+  );
 
   const handleAccept = async (id: string) => {
     await updateStatus({ variables: { id, status: 'ACCEPTED' } });
+    await doRefresh();
+  };
+
+  const handleMarkReady = async (id: string) => {
+    await updateStatus({ variables: { id, status: 'READY' } });
     await doRefresh();
   };
 
@@ -170,30 +203,27 @@ function KitchenBoard() {
             </span>
           </h2>
           <div className="space-y-3">
-            {pending.map((order) => (
-              <OrderCard
-                key={order._id}
-                order={order}
-                actions={
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => handleAccept(order._id)}
-                      className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold hover:bg-green-700"
-                    >
-                      ✓ Aceptar / Preparar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleCancel(order._id)}
-                      className="rounded-lg bg-red-600/80 px-4 py-2 text-sm hover:bg-red-600"
-                    >
-                      ✕ Cancelar
-                    </button>
-                  </>
-                }
-              />
-            ))}
+            {pending.map((order) =>
+              renderKitchenCard(
+                order,
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleAccept(order._id)}
+                    className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold hover:bg-green-700"
+                  >
+                    ✓ Aceptar / Preparar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleCancel(order._id)}
+                    className="rounded-lg bg-red-600/80 px-4 py-2 text-sm hover:bg-red-600"
+                  >
+                    ✕ Cancelar
+                  </button>
+                </>
+              )
+            )}
             {pending.length === 0 && (
               <p className="rounded-xl bg-gray-800 p-6 text-center text-gray-500">
                 Sin pedidos nuevos
@@ -210,17 +240,27 @@ function KitchenBoard() {
             </span>
           </h2>
           <div className="space-y-3">
-            {preparing.map((order) => (
-              <OrderCard
-                key={order._id}
-                order={order}
-                actions={
-                  <span className="text-sm text-blue-300">
-                    Esperando repartidor...
-                  </span>
-                }
-              />
-            ))}
+            {preparing.map((order) =>
+              renderKitchenCard(
+                order,
+                order.order_status === 'ASSIGNED' ? (
+                  <div className="flex w-full items-center justify-between gap-3">
+                    <span className="text-sm font-medium text-blue-800">
+                      🛵 {order.rider?.name || 'Repartidor'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleMarkReady(order._id)}
+                      className="shrink-0 text-sm font-semibold text-green-600 underline decoration-green-600/50 underline-offset-2 hover:text-green-500"
+                    >
+                      Listo
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-sm text-blue-600">Esperando repartidor…</span>
+                )
+              )
+            )}
             {preparing.length === 0 && (
               <p className="rounded-xl bg-gray-800 p-6 text-center text-gray-500">
                 Sin pedidos en preparación

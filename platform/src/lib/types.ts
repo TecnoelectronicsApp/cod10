@@ -50,9 +50,12 @@ export interface Order {
   order_id: string;
   order_status: string;
   order_amount: number;
+  delivery_charges?: number;
   payment_method?: string;
+  payment_status?: string;
   createdAt?: string;
-  user?: { name?: string; phone?: string; email?: string };
+  user?: { _id?: string; name?: string; phone?: string; email?: string };
+  rider?: { _id?: string; name?: string };
   delivery_address?: {
     delivery_address?: string;
     details?: string;

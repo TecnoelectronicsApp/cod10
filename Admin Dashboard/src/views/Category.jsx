@@ -4,14 +4,17 @@ import gql from "graphql-tag";
 import { Query, Mutation, compose, withApollo } from "react-apollo";
 import { withTranslation } from "react-i18next";
 import CategoryComponent from "../components/Category/Category";
-import CustomLoader from "../components/Loader/CustomLoader";
+import SortableDataTable from "../components/SortableDataTable";
 // reactstrap components
 import { Badge, Card, Container, Row, Modal } from "reactstrap";
 // core components
 import Header from "../components/Headers/Header.jsx";
-import { categories, deleteCategory, getFoodsList } from "../apollo/server";
-import DataTable from "react-data-table-component";
-import orderBy from "lodash/orderBy";
+import {
+  categories,
+  deleteCategory,
+  getFoodsList,
+  reorderCategories,
+} from "../apollo/server";
 import Loader from "react-loader-spinner";
 import Alert from "../components/Alert";
 import { formatGraphqlError } from "../utils/graphqlError";
@@ -21,6 +24,9 @@ const GET_CATEGORIES = gql`
 `;
 const DELETE_CATEGORY = gql`
   ${deleteCategory}
+`;
+const REORDER_CATEGORIES = gql`
+  ${reorderCategories}
 `;
 const GET_FOODS_LIST = gql`
   ${getFoodsList}
@@ -59,30 +65,13 @@ const Category = (props) => {
     setCategory(category);
   };
 
-  const customSort = (rows, field, direction) => {
-    const handleField = (row) => {
-      if (row[field]) {
-        return row[field].toLowerCase();
-      }
-
-      return row[field];
-    };
-
-    return orderBy(rows, handleField, direction);
-  };
-
-  const handleSort = (column, sortDirection) =>
-    console.log(column.selector, sortDirection);
-
   const columns = [
     {
       name: t("Title"),
-      sortable: true,
       selector: "title",
     },
     {
       name: t("Description"),
-      sortable: true,
       selector: "description",
     },
     {
@@ -98,9 +87,11 @@ const Category = (props) => {
     },
     {
       name: "Action",
+      skipDropWrap: true,
       cell: (row) => <>{actionButtons(row)}</>,
     },
   ];
+
   const actionButtons = (row) => {
     return (
       <>
@@ -151,13 +142,12 @@ const Category = (props) => {
       </>
     );
   };
+
   return (
     <>
       <Header />
-      {/* Page content */}
       <Container className="mt--7" fluid>
         <CategoryComponent />
-        {/* Table */}
         <Row className="mt-5">
           <div className="col">
             <Card className="shadow">
@@ -167,7 +157,7 @@ const Category = (props) => {
                   severity={deleteAlert.severity}
                 />
               )}
-              <Query query={GET_CATEGORIES} variables={{ page: 0 }}>
+              <Query query={GET_CATEGORIES} fetchPolicy="network-only">
                 {({ loading, error, data }) => {
                   if (error) {
                     return (
@@ -177,17 +167,29 @@ const Category = (props) => {
                     );
                   }
                   return (
-                    <DataTable
-                      title={t("Categories")}
-                      columns={columns}
-                      data={data.categories}
-                      pagination
-                      progressPending={loading}
-                      progressComponent={<CustomLoader />}
-                      onSort={handleSort}
-                      sortFunction={customSort}
-                      defaultSortField="title"
-                    />
+                    <Mutation
+                      mutation={REORDER_CATEGORIES}
+                      refetchQueries={[{ query: GET_CATEGORIES }]}
+                    >
+                      {(reorderMutate, { loading: reordering }) => (
+                        <SortableDataTable
+                          title={t("Categories")}
+                          columns={columns}
+                          data={(data && data.categories) || []}
+                          loading={loading}
+                          reordering={reordering}
+                          onReorder={(ids) =>
+                            reorderMutate({ variables: { ids } }).then(
+                              function (r) {
+                                return r;
+                              }
+                            )
+                          }
+                          hint={t("Drag to reorder")}
+                          t={t}
+                        />
+                      )}
+                    </Mutation>
                   );
                 }}
               </Query>

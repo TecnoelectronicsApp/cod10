@@ -32,10 +32,12 @@ const OrdersData = (props) => {
   const { t, selected, updateSelected } = props;
   const [search, setSearch] = useState("");
   const getItems = (items) => {
-    return items
-      .map(
-        (item) => `${item.quantity}x${item.food.title}(${item.variation.title})`
-      )
+    return (items || [])
+      .map((item) => {
+        const food = (item.food && item.food.title) || "Producto";
+        const variation = (item.variation && item.variation.title) || "";
+        return `${item.quantity}x${food}(${variation})`;
+      })
       .join("\n");
   };
 
@@ -111,7 +113,9 @@ const OrdersData = (props) => {
       sortable: true,
       selector: "user.name",
       cell: (row) => (
-        <>{`${row.user.name}\n${row.user.email}\n${row.user.phone}`}</>
+        <>{`${(row.user && row.user.name) || ""}\n${
+          (row.user && row.user.email) || ""
+        }\n${(row.user && row.user.phone) || ""}`}</>
       ),
     },
     {
@@ -183,7 +187,7 @@ const OrdersData = (props) => {
   }, [props.orders]);
 
   return (
-    <Query query={ORDERCOUNT} fetchPolicy="cache-first">
+    <Query query={ORDERCOUNT} fetchPolicy="network-only">
       {({ loading, error, data }) => {
         const totalRows =
           (data && data.orderCount) ||
@@ -213,6 +217,8 @@ const OrdersData = (props) => {
             subHeaderComponent={subHeaderComponent()}
             pagination
             paginationServer
+            paginationDefaultPage={props.currentPage || 1}
+            paginationPerPage={props.rowsPerPage || 10}
             paginationTotalRows={totalRows}
             onChangeRowsPerPage={handlePerRowsChange}
             onChangePage={handlePageChange}

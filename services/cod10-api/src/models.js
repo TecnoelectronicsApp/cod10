@@ -22,6 +22,7 @@ const categorySchema = new mongoose.Schema(
     title: { type: String, required: true },
     description: String,
     img_menu: String,
+    sort_order: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
@@ -44,6 +45,7 @@ const foodSchema = new mongoose.Schema(
     },
     stock: { type: Number, default: 100 },
     tag: String,
+    sort_order: { type: Number, default: 0 },
     category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
     variations: { type: [variationSchema], default: [] },
   },
@@ -70,6 +72,7 @@ const userSchema = new mongoose.Schema(
     push_token: String,
     addresses: [addressSchema],
     username: String,
+    available: { type: Boolean, default: true },
   },
   { timestamps: true }
 );
@@ -136,6 +139,7 @@ const configurationSchema = new mongoose.Schema(
 
 const couponSchema = new mongoose.Schema(
   {
+    code: String,
     title: String,
     discount: Number,
     enabled: Boolean,

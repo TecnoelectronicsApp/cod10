@@ -60,10 +60,7 @@ async function getHandler() {
   await server.start();
 
   handler = startServerAndCreateNextHandler(server, {
-    context: async (request) => {
-      const req = request?.request ?? request;
-      return { user: authContext(req) };
-    },
+    context: async (req) => ({ user: authContext(req) }),
   });
 
   return handler;

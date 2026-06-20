@@ -291,6 +291,8 @@ function Order(props) {
                             {({ loading, error, data }) => {
                               if (loading) return <option>Loading...</option>;
                               if (error) return <option>Error...</option>;
+                              const riders =
+                                (data && data.availableRiders) || [];
                               return (
                                 <Input
                                   type="select"
@@ -302,7 +304,7 @@ function Order(props) {
                                   }
                                 >
                                   <option disabled></option>
-                                  {data.availableRiders.map((rider) => (
+                                  {riders.map((rider) => (
                                     <option key={rider._id} value={rider._id}>
                                       {rider.name}
                                     </option>
@@ -496,6 +498,8 @@ function Order(props) {
                             {({ loading, error, data }) => {
                               if (loading) return <option>Loading...</option>;
                               if (error) return <option>Error...</option>;
+                              const paymentStatuses =
+                                (data && data.getPaymentStatuses) || [];
                               return (
                                 <Input
                                   type="select"
@@ -505,7 +509,7 @@ function Order(props) {
                                   defaultValue={order.payment_status}
                                 >
                                   <option disabled></option>
-                                  {data.getPaymentStatuses.map((status) => (
+                                  {paymentStatuses.map((status) => (
                                     <option key={status} value={status}>
                                       {translatePaymentStatus(status, t)}
                                     </option>
@@ -728,14 +732,14 @@ function Order(props) {
                                       data.configuration.currency_symbol
                                     )}
                                   </Badge>
-                                  {!!item.addons.length && (
+                                  {!!(item.addons && item.addons.length) && (
                                     <UncontrolledDropdown>
                                       <DropdownToggle caret>
                                         {t("Addons")}
                                       </DropdownToggle>
                                       <DropdownMenu>
                                         {item.addons.map((addon) => {
-                                          return addon.options.map(
+                                          return (addon.options || []).map(
                                             (option, index) => (
                                               <DropdownItem key={index}>
                                                 {addon.title}:- {option.title}{" "}

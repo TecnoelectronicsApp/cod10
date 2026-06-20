@@ -22,6 +22,8 @@ function OrdersQueryView(props) {
     setSearch,
     setPage,
     setRowsPerPage,
+    currentPage,
+    rowsPerPage,
   } = props;
   const [autoRetrying, setAutoRetrying] = useState(false);
 
@@ -76,6 +78,8 @@ function OrdersQueryView(props) {
       search={setSearch}
       page={setPage}
       rows={setRowsPerPage}
+      currentPage={currentPage}
+      rowsPerPage={rowsPerPage}
     />
   );
 }

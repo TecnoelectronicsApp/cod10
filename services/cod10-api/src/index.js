@@ -59,7 +59,8 @@ async function bootstrap(app, httpServer) {
   console.log('[cod10-api] MongoDB conectado');
 
   const { Category } = require('./models');
-  const { runSeed } = require('./seed');
+  const { runSeed, ensureAdmins } = require('./seed');
+  await ensureAdmins();
   const categoryCount = await Category.countDocuments();
   if (categoryCount === 0) {
     console.log('[cod10-api] Base de datos vacía — seed automático…');
