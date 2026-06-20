@@ -1,4 +1,4 @@
-const API = process.env.API_URL || 'https://cod10-graphql.onrender.com/graphql';
+const API = process.env.API_URL || 'https://cod10.vercel.app/api/graphql';
 
 async function gql(query, variables) {
   const res = await fetch(API, {
@@ -15,10 +15,17 @@ async function main() {
   console.log('=== Test stack Codigo 10 ===');
   console.log('API:', API);
 
-  const healthUrl = API.replace('/graphql', '/health');
+  const healthUrl = API.replace(/\/graphql$/, '/health');
   const h = await fetch(healthUrl).then((r) => r.json());
   console.log('Health:', h);
-  if (!h.mongo) throw new Error('MongoDB no conectado en Render');
+  if (!h.mongo) {
+    if (h.error?.includes('whitelist') || h.error?.includes('IP')) {
+      throw new Error(
+        'Atlas bloquea Vercel/Render. En Network Access agrega 0.0.0.0/0: https://cloud.mongodb.com/v2/6a35c98d6473330512f42634#/security/network/accessList'
+      );
+    }
+    throw new Error(h.error || 'MongoDB no conectado');
+  }
 
   const { categories } = await gql('{ categories { _id title } }');
   console.log('Categorías:', categories.length, categories.map((c) => c.title).join(', '));
