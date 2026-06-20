@@ -4,12 +4,6 @@
   "framework": "nextjs",
   "installCommand": "npm install",
   "buildCommand": "npm run build",
-  "crons": [
-    {
-      "path": "/api/bot/keepalive",
-      "schedule": "*/14 * * * *"
-    }
-  ],
   "env": {
     "NEXT_PUBLIC_GRAPHQL_URL": "https://cod10.vercel.app/api/graphql",
     "NEXT_PUBLIC_WS_GRAPHQL_URL": "https://cod10.vercel.app/api/graphql"
