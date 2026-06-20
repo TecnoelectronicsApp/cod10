@@ -27,8 +27,11 @@ async function comparePassword(password, hash) {
 }
 
 function authContext(req) {
-  const header = req.headers.authorization || '';
-  const token = header.replace(/^Bearer\s+/i, '').trim();
+  const header =
+    req.headers?.authorization ||
+    (typeof req.headers?.get === 'function' ? req.headers.get('authorization') : '') ||
+    '';
+  const token = String(header).replace(/^Bearer\s+/i, '').trim();
   if (!token) return null;
   return verifyToken(token);
 }

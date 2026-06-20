@@ -4,12 +4,13 @@ import { Food } from '@/lib/types';
 import { useState } from 'react';
 import { useCart } from '@/lib/cart-context';
 import DualPrice from '@/components/DualPrice';
+import { effectiveVariationPrice } from '@/lib/effective-price';
 
 function calcPrice(
   variation: Food['variations'][0],
   selectedAddons: Record<string, string[]>
 ) {
-  let price = variation.discounted ?? variation.price;
+  let price = effectiveVariationPrice(variation);
   variation.addons?.forEach((addon) => {
     const selected = selectedAddons[addon._id] || [];
     addon.options.forEach((opt) => {
@@ -102,7 +103,7 @@ export default function FoodModal({
                         : 'border-gray-200'
                     }`}
                   >
-                    {v.title} — <DualPrice amount={v.discounted ?? v.price} symbol={symbol} exchangeRate={exchangeRate} />
+                    {v.title} — <DualPrice amount={effectiveVariationPrice(v)} symbol={symbol} exchangeRate={exchangeRate} />
                   </button>
                 ))}
               </div>

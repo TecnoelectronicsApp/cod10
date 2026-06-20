@@ -8,6 +8,7 @@ import FoodModal from '@/components/FoodModal';
 import DualPrice from '@/components/DualPrice';
 import { useBcvRate } from '@/hooks/useBcvRate';
 import { useMenuCatalog } from '@/hooks/useMenuCatalog';
+import { effectiveVariationPrice } from '@/lib/effective-price';
 
 function MenuContent() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -61,7 +62,7 @@ function MenuContent() {
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {foods.map((food) => {
-                const price = food.variations[0]?.discounted ?? food.variations[0]?.price ?? 0;
+                const price = effectiveVariationPrice(food.variations[0]);
                 return (
                   <button
                     key={food._id}
