@@ -10,7 +10,7 @@
     "seed": "node src/seed.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": "20.x"
   },
   "dependencies": {
     "@apollo/server": "^4.11.3",

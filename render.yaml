@@ -1,5 +1,5 @@
 # Blueprint Render — API GraphQL Codigo 10
-# https://dashboard.render.com/blueprints → New Blueprint Instance → conectar repo GitHub
+# https://dashboard.render.com/blueprints
 
 services:
   - type: web
@@ -13,13 +13,21 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: MONGODB_URI
+      - key: NODE_VERSION
+        value: "20"
+      - key: ATLAS_CLUSTER_HOST
+        value: cluster0.rhmrgxr.mongodb.net
+      - key: ATLAS_DB_USER
+        value: tecnosoftwareapp_db_user
+      - key: ATLAS_DB_NAME
+        value: cod10
+      - key: ATLAS_DB_PASSWORD
         sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: ADMIN_EMAIL
         value: admin@codigo10.com
       - key: ADMIN_PASSWORD
-        sync: false
+        value: codigo10admin
       - key: CORS_ORIGINS
         value: https://cod10.vercel.app,https://cod10-admin.vercel.app,http://localhost:3000,http://localhost:3006
