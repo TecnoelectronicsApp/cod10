@@ -34,6 +34,8 @@ function getMongoUri() {
 }
 
 const MONGODB_URI = getMongoUri();
+let bootstrapError = null;
+let graphqlReady = false;
 
 function maskUri(uri) {
   return uri.replace(/\/\/.*@/, '//***@');
@@ -42,11 +44,14 @@ function maskUri(uri) {
 async function bootstrap(app, httpServer) {
   if (process.env.NODE_ENV === 'production' && !process.env.MONGODB_URI && !process.env.ATLAS_DB_PASSWORD) {
     throw new Error(
-      'Falta MONGODB_URI o ATLAS_DB_PASSWORD en Render → Environment. Ver ATLAS-SETUP.md'
+      'Falta ATLAS_DB_PASSWORD en Render → Environment (clave de tecnosoftwareapp_db_user)'
     );
   }
 
   console.log('[cod10-api] Conectando MongoDB:', maskUri(MONGODB_URI));
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.disconnect().catch(() => {});
+  }
   await mongoose.connect(MONGODB_URI, {
     serverSelectionTimeoutMS: 60000,
     socketTimeoutMS: 45000,
@@ -97,6 +102,8 @@ async function bootstrap(app, httpServer) {
   );
 
   console.log('[cod10-api] GraphQL listo en /graphql');
+  graphqlReady = true;
+  bootstrapError = null;
 }
 
 async function main() {
@@ -119,7 +126,8 @@ async function main() {
       ok: true,
       service: 'cod10-api',
       mongo: mongoose.connection.readyState === 1,
-      ready: mongoose.connection.readyState === 1,
+      ready: graphqlReady,
+      error: bootstrapError ? String(bootstrapError.message || bootstrapError) : null,
     });
   });
 
@@ -135,10 +143,14 @@ async function main() {
 
   httpServer.listen(PORT, HOST, () => {
     console.log(`[cod10-api] Escuchando http://${HOST}:${PORT}`);
-    bootstrap(app, httpServer).catch((err) => {
-      console.error('[cod10-api] Error bootstrap:', err);
-      process.exit(1);
-    });
+    const run = () =>
+      bootstrap(app, httpServer).catch((err) => {
+        bootstrapError = err;
+        graphqlReady = false;
+        console.error('[cod10-api] Error bootstrap (reintento en 30s):', err.message || err);
+        setTimeout(run, 30000);
+      });
+    run();
   });
 }
 
