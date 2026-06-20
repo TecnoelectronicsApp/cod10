@@ -21,6 +21,7 @@ import {
 import { refreshBcvExchangeRate } from "../../../utils/bcvRate";
 import {
   buildFullStoreConfig,
+  fetchStoreConfigFromCloudinary,
   uploadStoreConfigToCloudinary,
 } from "../../../utils/paymentMethods";
 
@@ -103,8 +104,15 @@ function MultiCurrency(props) {
     };
     saveMultiCurrencyConfig(multiPayload);
     try {
+      let botOverride = null;
+      try {
+        const cloud = await fetchStoreConfigFromCloudinary();
+        if (cloud && cloud.whatsappBot) botOverride = cloud.whatsappBot;
+      } catch (syncErr) {
+        console.warn("No se pudo leer whatsappBot de Cloudinary", syncErr);
+      }
       await uploadStoreConfigToCloudinary(
-        buildFullStoreConfig(null, multiPayload)
+        buildFullStoreConfig(null, multiPayload, botOverride)
       );
     } catch (syncErr) {
       console.warn("No se pudo publicar multimoneda en Cloudinary", syncErr);

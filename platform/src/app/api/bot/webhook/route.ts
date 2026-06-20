@@ -3,6 +3,7 @@ import { verifyWebhookSignature } from '@/lib/bot/auth';
 import { buildBotCatalog, buildCatalogContext } from '@/lib/bot/catalog';
 import { generateGeminiReply } from '@/lib/bot/gemini';
 import { extractInboundMessage, sendOpenWAText, isBotEnabled, type OpenWAWebhookPayload } from '@/lib/bot/openwa';
+import { buildFallbackReply } from '@/lib/bot/fallback-reply';
 import { buildWhatsAppAccessUrl, whatsAppChatIdToPhone } from '@/lib/quick-auth';
 
 export const dynamic = 'force-dynamic';
@@ -38,7 +39,13 @@ DATOS DEL CLIENTE (WhatsApp):
 - Link de acceso rápido (1 clic, sin registro manual): ${quickAccessUrl}
 Si el cliente quiere pedir en la web, envíale ese link. Al abrirlo entra solo con su número.`;
 
-    const reply = await generateGeminiReply(contextWithCustomer, inbound.body);
+    let reply: string;
+    try {
+      reply = await generateGeminiReply(contextWithCustomer, inbound.body);
+    } catch (geminiError) {
+      console.error('[api/bot/webhook] Gemini fallback:', geminiError);
+      reply = buildFallbackReply(catalog, inbound.body);
+    }
 
     await sendOpenWAText({
       chatId: inbound.chatId,
