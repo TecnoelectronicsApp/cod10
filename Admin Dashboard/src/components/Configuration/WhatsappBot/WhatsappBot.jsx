@@ -28,10 +28,16 @@ import {
   openwaStartSession,
   openwaGetQr,
   openwaCreateSession,
+  openwaListSessions,
+  openwaRegisterWebhook,
   isSessionOnline,
   needsQrScan,
   statusLabelKey,
 } from "../../../utils/openwaClient";
+
+const COD10_BOT_DIAG_URL =
+  process.env.REACT_APP_COD10_BOT_DIAG_URL ||
+  "https://cod10.vercel.app/api/bot/diag";
 
 function WhatsappBot(props) {
   const { t } = props;
@@ -57,6 +63,10 @@ function WhatsappBot(props) {
   const [waLoading, waLoadingSetter] = useState(false);
 
   const [qrImage, qrImageSetter] = useState("");
+
+  const [diagLog, diagLogSetter] = useState("");
+
+  const [testReply, testReplySetter] = useState("");
 
   const pollRef = useRef(null);
 
@@ -103,31 +113,35 @@ function WhatsappBot(props) {
       try {
         let sessionId = bot.openwaSessionId;
 
-        if (!sessionId || !sessionId.trim()) {
-          const created = await openwaCreateSession(
-            bot.openwaBaseUrl,
+        const allSessions = await openwaListSessions(
+          bot.openwaBaseUrl,
+          bot.openwaApiKey
+        );
 
-            bot.openwaApiKey,
+        if (!allSessions || allSessions.length === 0) {
+          waStatusSetter("disconnected");
+          waPhoneSetter("");
+          waErrorSetter(t("WA render wiped sessions"));
+          qrImageSetter("");
+          return;
+        }
 
-            "codigo10"
-          );
+        const match = sessionId
+          ? allSessions.find(function (s) {
+              return s.id === sessionId;
+            })
+          : null;
 
-          sessionId = created.id;
-
+        if (!match) {
+          sessionId = allSessions[0].id;
           updateField("openwaSessionId", sessionId);
-
           botSetter(function (prev) {
             return Object.assign({}, prev, { openwaSessionId: sessionId });
           });
+          waErrorSetter(t("WA session id updated"));
         }
 
-        const session = await openwaGetSession(
-          bot.openwaBaseUrl,
-
-          bot.openwaApiKey,
-
-          sessionId
-        );
+        const session = match || allSessions[0];
 
         waStatusSetter(session.status);
 
@@ -244,6 +258,59 @@ function WhatsappBot(props) {
 
   const resetDefaults = () => {
     botSetter(Object.assign({}, defaultWhatsappBotConfig));
+  };
+
+  const runBotDiag = async function () {
+    diagLogSetter(t("Loading") + "…");
+    testReplySetter("");
+    try {
+      const res = await fetch(COD10_BOT_DIAG_URL + "?t=" + Date.now());
+      const data = await res.json();
+      diagLogSetter(JSON.stringify(data, null, 2));
+    } catch (e) {
+      diagLogSetter(String(e.message || e));
+    }
+  };
+
+  const runBotTest = async function () {
+    testReplySetter(t("Loading") + "…");
+    try {
+      const res = await fetch(COD10_BOT_DIAG_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: "¿Tienen hamburguesas? buenas tardes",
+        }),
+      });
+      const data = await res.json();
+      testReplySetter(JSON.stringify(data, null, 2));
+    } catch (e) {
+      testReplySetter(String(e.message || e));
+    }
+  };
+
+  const registerWebhook = async function () {
+    if (!bot.openwaSessionId || !bot.webhookSecret) {
+      waErrorSetter(t("Webhook setup missing"));
+      return;
+    }
+    waLoadingSetter(true);
+    try {
+      await openwaRegisterWebhook(
+        bot.openwaBaseUrl,
+        bot.openwaApiKey,
+        bot.openwaSessionId,
+        "https://cod10.vercel.app/api/bot/webhook",
+        bot.webhookSecret
+      );
+      waErrorSetter("");
+      alert(t("Webhook registered ok"));
+      await runBotDiag();
+    } catch (e) {
+      waErrorSetter(e.message || String(e));
+    } finally {
+      waLoadingSetter(false);
+    }
   };
 
   const statusBadgeColor = function () {
@@ -501,6 +568,62 @@ function WhatsappBot(props) {
                   <Alert color="warning" className="mb-0">
                     {waError}
                   </Alert>
+                )}
+              </Card>
+
+              <Card className="bg-light mb-4 p-3">
+                <h5 className="mb-2">{t("Bot diagnostic")}</h5>
+                <p className="text-muted small mb-2">
+                  {t("Bot diagnostic help")}
+                </p>
+                <Row className="mb-3">
+                  <Col md="4">
+                    <Button
+                      color="primary"
+                      type="button"
+                      block
+                      onClick={runBotDiag}
+                    >
+                      {t("Run bot diagnostic")}
+                    </Button>
+                  </Col>
+                  <Col md="4">
+                    <Button
+                      color="info"
+                      type="button"
+                      block
+                      onClick={runBotTest}
+                    >
+                      {t("Test bot reply")}
+                    </Button>
+                  </Col>
+                  <Col md="4">
+                    <Button
+                      color="warning"
+                      type="button"
+                      block
+                      disabled={waLoading}
+                      onClick={registerWebhook}
+                    >
+                      {t("Register webhook")}
+                    </Button>
+                  </Col>
+                </Row>
+                {diagLog && (
+                  <pre
+                    className="small bg-white p-2 border rounded mb-2"
+                    style={{ maxHeight: "220px", overflow: "auto" }}
+                  >
+                    {diagLog}
+                  </pre>
+                )}
+                {testReply && (
+                  <pre
+                    className="small bg-white p-2 border rounded mb-0"
+                    style={{ maxHeight: "180px", overflow: "auto" }}
+                  >
+                    {testReply}
+                  </pre>
                 )}
               </Card>
 

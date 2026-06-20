@@ -8,6 +8,6 @@ export async function GET() {
     service: 'cod10-bot',
     version: '2.0.0',
     source: 'mongodb-via-graphql',
-    endpoints: ['/api/bot/catalog', '/api/bot/webhook', '/api/bot/health', '/api/bot/keepalive'],
+    endpoints: ['/api/bot/catalog', '/api/bot/webhook', '/api/bot/health', '/api/bot/keepalive', '/api/bot/diag'],
   });
 }

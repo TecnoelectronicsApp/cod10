@@ -96,3 +96,46 @@ export function statusLabelKey(status) {
   if (status === "failed") return "WA status failed";
   return "WA status unknown";
 }
+
+export async function openwaListWebhooks(openwaUrl, apiKey, sessionId) {
+  const res = await fetch(
+    baseUrl(openwaUrl) +
+      "/api/sessions/" +
+      encodeURIComponent(sessionId) +
+      "/webhooks",
+    { headers: headers(apiKey) }
+  );
+  if (!res.ok) {
+    throw new Error("OpenWA webhooks: " + res.status);
+  }
+  return res.json();
+}
+
+export async function openwaRegisterWebhook(
+  openwaUrl,
+  apiKey,
+  sessionId,
+  webhookUrl,
+  webhookSecret
+) {
+  const res = await fetch(
+    baseUrl(openwaUrl) +
+      "/api/sessions/" +
+      encodeURIComponent(sessionId) +
+      "/webhooks",
+    {
+      method: "POST",
+      headers: headers(apiKey),
+      body: JSON.stringify({
+        url: webhookUrl,
+        events: ["message.received"],
+        secret: webhookSecret || undefined,
+      }),
+    }
+  );
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error("OpenWA webhook: " + res.status + " " + text.slice(0, 120));
+  }
+  return res.json();
+}

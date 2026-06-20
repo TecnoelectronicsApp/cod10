@@ -217,6 +217,18 @@ const es = {
     "Refresh WA status": "Actualizar estado",
     "Start WA session": "Iniciar sesión WhatsApp",
     "Open OpenWA dashboard": "Abrir panel OpenWA",
+    "Bot diagnostic": "Diagnóstico del bot",
+    "Bot diagnostic help":
+      "Render FREE borra sesiones y webhooks al reiniciar. Usa estos botones para ver qué falla.",
+    "Run bot diagnostic": "Ejecutar diagnóstico",
+    "Test bot reply": "Probar respuesta IA",
+    "Register webhook": "Registrar webhook",
+    "Webhook registered ok": "Webhook registrado correctamente",
+    "Webhook setup missing": "Falta Session ID o Webhook secret",
+    "WA render wiped sessions":
+      "OpenWA en Render no tiene sesiones (reinicio borró todo). Pulsa Iniciar sesión y escanea QR.",
+    "WA session id updated":
+      "El Session ID del admin no existía en el servidor — se actualizó al actual.",
     "Scan QR WhatsApp": "Escanea este código con WhatsApp",
     "WhatsApp QR scan hint":
       "WhatsApp → Dispositivos vinculados → Vincular dispositivo. El QR se actualiza solo.",
