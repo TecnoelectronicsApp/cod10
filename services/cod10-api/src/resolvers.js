@@ -328,7 +328,10 @@ function createResolvers(pubsub) {
           if (!f) throw new Error('Producto no encontrado');
           const variation = (f.variations || []).find((v) => String(v._id) === String(line.variation));
           if (!variation) throw new Error('Variación no encontrada');
-          const price = Number(variation.discounted || variation.price || 0);
+          const price =
+            variation.discounted != null && Number(variation.discounted) > 0
+              ? Number(variation.discounted)
+              : Number(variation.price || 0);
           subtotal += price * line.quantity;
 
           const addonDocs = [];

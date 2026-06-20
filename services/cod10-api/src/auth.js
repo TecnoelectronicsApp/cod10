@@ -27,10 +27,17 @@ async function comparePassword(password, hash) {
 }
 
 function authContext(req) {
-  const header =
-    req.headers?.authorization ||
-    (typeof req.headers?.get === 'function' ? req.headers.get('authorization') : '') ||
-    '';
+  if (!req) return null;
+
+  const headers = req.headers || req.request?.headers;
+  let header = '';
+
+  if (headers && typeof headers.get === 'function') {
+    header = headers.get('authorization') || headers.get('Authorization') || '';
+  } else if (headers?.authorization) {
+    header = headers.authorization;
+  }
+
   const token = String(header).replace(/^Bearer\s+/i, '').trim();
   if (!token) return null;
   return verifyToken(token);

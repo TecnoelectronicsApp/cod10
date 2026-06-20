@@ -114,7 +114,7 @@ function Food(props) {
       images[i] = event.target.files.item(i);
     }
     images = images.filter((image) =>
-      image.name.match(/\.(jpg|jpeg|png|gif)$/)
+      image.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
     );
     const message = `${images.length} valid image(s) selected`;
     console.log(message);
@@ -124,8 +124,10 @@ function Food(props) {
     const result = filterImage(event);
     if (result) {
       selectedFileSetter(result);
+      imageUrlInputSetter("");
       imageToBase64(result);
     }
+    event.target.value = "";
   };
 
   const onAdd = (index) => {
@@ -355,21 +357,6 @@ function Food(props) {
   };
 
   const uploadImageToCloudinary = async () => {
-    const urlFromInput = imageUrlInput.trim();
-    if (urlFromInput.startsWith("http")) {
-      return resolveFoodImageUrl(urlFromInput);
-    }
-
-    if (
-      props.food &&
-      props.food.img_url === imgMenu &&
-      imgMenu &&
-      typeof imgMenu === "string" &&
-      imgMenu.startsWith("http")
-    ) {
-      return resolveFoodImageUrl(imgMenu);
-    }
-
     if (selectedFile) {
       const formData = new FormData();
       formData.append("file", selectedFile);
@@ -407,6 +394,21 @@ function Food(props) {
       } catch (e) {
         console.error(e);
       }
+    }
+
+    const urlFromInput = imageUrlInput.trim();
+    if (urlFromInput.startsWith("http")) {
+      return resolveFoodImageUrl(urlFromInput);
+    }
+
+    if (
+      props.food &&
+      props.food.img_url === imgMenu &&
+      imgMenu &&
+      typeof imgMenu === "string" &&
+      imgMenu.startsWith("http")
+    ) {
+      return resolveFoodImageUrl(imgMenu);
     }
 
     if (imgMenu && typeof imgMenu === "string" && imgMenu.startsWith("http")) {

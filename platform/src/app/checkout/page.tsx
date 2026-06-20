@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getApolloClient } from '@/lib/apollo-client';
 import { useCart } from '@/lib/cart-context';
-import { getToken } from '@/lib/auth';
+import { getToken, clearAuth } from '@/lib/auth';
 import { CONFIGURATION, PLACE_ORDER, PROFILE } from '@/lib/graphql/operations';
 import { useBcvRate } from '@/hooks/useBcvRate';
 import { useStoreConfig } from '@/hooks/useStoreConfig';
@@ -31,6 +31,11 @@ function CheckoutContent() {
   });
   const [error, setError] = useState('');
   const [selectedPaymentId, setSelectedPaymentId] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    setIsLoggedIn(Boolean(getToken('customer')));
+  }, []);
 
   const { data: configData } = useQuery<{ configuration: { delivery_charges: number; currency_symbol: string } }>(CONFIGURATION);
   const { data: profileData } = useQuery<{ profile: { addresses: { label: string; delivery_address: string; details: string; latitude: string; longitude: string; selected: boolean }[] } }>(PROFILE, { skip: !getToken('customer') });
@@ -53,7 +58,8 @@ function CheckoutContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!getToken('customer')) {
+    const token = getToken('customer');
+    if (!token) {
       router.push('/login?redirect=/checkout');
       return;
     }
@@ -105,6 +111,12 @@ function CheckoutContent() {
       router.push('/orders');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error al crear el pedido';
+      if (msg.includes('No autorizado') || msg.includes('autorizado')) {
+        clearAuth('customer');
+        setError('Sesión expirada. Inicia sesión de nuevo para confirmar tu pedido.');
+        router.push('/login?redirect=/checkout');
+        return;
+      }
       setError(
         msg === 'Invalid Payment Method'
           ? 'Método de pago no válido para el servidor. Intenta de nuevo.'
@@ -126,7 +138,7 @@ function CheckoutContent() {
     <div className="mx-auto max-w-2xl px-4 py-6">
       <h1 className="mb-6 text-2xl font-bold">Checkout</h1>
 
-      {!getToken('customer') && (
+      {!isLoggedIn && (
         <div className="mb-4 rounded-lg bg-yellow-50 p-3 text-sm text-yellow-800">
           <Link href="/login?redirect=/checkout" className="font-semibold underline">
             Inicia sesión
@@ -207,10 +219,10 @@ function CheckoutContent() {
 
         <button
           type="submit"
-          disabled={loading || configLoading || !paymentMethods.length}
+          disabled={loading || configLoading || !paymentMethods.length || !isLoggedIn}
           className="w-full rounded-xl bg-orange-500 py-3 font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
         >
-          {loading ? 'Procesando...' : 'Confirmar pedido'}
+          {!isLoggedIn ? 'Inicia sesión para confirmar' : loading ? 'Procesando...' : 'Confirmar pedido'}
         </button>
       </form>
     </div>
