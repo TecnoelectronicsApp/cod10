@@ -14,6 +14,12 @@ export type OpenWAWebhookPayload = {
     type?: string;
     fromMe?: boolean;
     isGroup?: boolean;
+    location?: {
+      latitude: number;
+      longitude: number;
+      description?: string;
+      address?: string;
+    };
   };
 };
 
@@ -22,12 +28,31 @@ export function extractInboundMessage(payload: OpenWAWebhookPayload): {
   messageId: string;
   body: string;
   sessionId: string;
+  location?: { lat: number; lng: number; address?: string };
 } | null {
   if (payload.event !== 'message.received') return null;
   const msg = payload.data;
   if (!msg || msg.fromMe || msg.isGroup) return null;
-  if (msg.type !== 'text' || !msg.body?.trim()) return null;
   if (!msg.chatId || !msg.id) return null;
+
+  if (msg.type === 'location' && msg.location) {
+    const lat = Number(msg.location.latitude);
+    const lng = Number(msg.location.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    return {
+      chatId: msg.chatId,
+      messageId: msg.id,
+      body: msg.location.address || msg.location.description || `[ubicación] ${lat}, ${lng}`,
+      sessionId: payload.sessionId,
+      location: {
+        lat,
+        lng,
+        address: msg.location.address || msg.location.description,
+      },
+    };
+  }
+
+  if (msg.type !== 'text' || !msg.body?.trim()) return null;
 
   return {
     chatId: msg.chatId,

@@ -13,6 +13,7 @@ import {
 } from '@/lib/bot/conversation-flow';
 import { buildDedupeKey, processWebhookOnce } from '@/lib/bot/webhook-dedupe';
 import { buildWhatsAppAccessUrl, whatsAppChatIdToPhone } from '@/lib/quick-auth';
+import { estimateDelivery, formatDeliveryEstimate } from '@/lib/bot/delivery';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -22,6 +23,7 @@ async function handleInboundMessage(inbound: {
   messageId: string;
   body: string;
   sessionId: string;
+  location?: { lat: number; lng: number; address?: string };
 }) {
   const turn = await getConversationTurn(inbound.sessionId, inbound.chatId);
   const scripted = replyForTurn(turn);
@@ -39,11 +41,21 @@ async function handleInboundMessage(inbound: {
     const catalog = await buildBotCatalog();
     const catalogContext = buildCatalogContext(catalog);
     const customerPhone = whatsAppChatIdToPhone(inbound.chatId);
-    const quickAccessUrl = buildWhatsAppAccessUrl(customerPhone, '/');
+    const checkoutUrl = buildWhatsAppAccessUrl(customerPhone, '/checkout');
     const history = await fetchChatHistory(inbound.sessionId, inbound.chatId);
+
+    const deliveryEstimate = inbound.location
+      ? await estimateDelivery({ lat: inbound.location.lat, lng: inbound.location.lng })
+      : await estimateDelivery({ text: inbound.body });
+
+    const deliveryBlock = deliveryEstimate
+      ? formatDeliveryEstimate(deliveryEstimate, catalog.currencySymbol)
+      : 'Sin estimación de delivery aún — pide dirección o ubicación de WhatsApp.';
+
     const customerBlock = `DATOS DEL CLIENTE:
 - Teléfono WhatsApp: ${customerPhone || 'no disponible'}
-- Acceso rápido web: ${quickAccessUrl}`;
+- Acceso rápido checkout: ${checkoutUrl}
+- ${deliveryBlock}`;
 
     try {
       reply = await generateGeminiReply(catalogContext, inbound.body, {
@@ -53,7 +65,10 @@ async function handleInboundMessage(inbound: {
       mode = 'gemini';
     } catch (geminiError) {
       console.error('[api/bot/webhook] Gemini:', geminiError);
-      reply = buildFallbackReply(catalog, inbound.body);
+      reply = buildFallbackReply(catalog, inbound.body, {
+        deliveryEstimate,
+        customerPhone,
+      });
       mode = 'fallback';
     }
   }
