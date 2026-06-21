@@ -1,41 +1,25 @@
 import type { BotCatalog } from './catalog';
 
-/** Respuesta básica sin Gemini cuando la API falla (cuota, clave inválida, etc.). */
-export function buildFallbackReply(catalog: BotCatalog, _userMessage: string): string {
+/** Solo si Gemini falla en turno 3+ — respuesta corta, no volcar catálogo entero */
+export function buildFallbackReply(catalog: BotCatalog, userMessage: string): string {
   const storeUrl = catalog.storeUrl || 'https://cod10.vercel.app';
-  const burgers = catalog.products
-    .filter((p) => /hamburg|parrill|pollo|brasa/i.test(p.name + (p.category || '')))
-    .slice(0, 5);
+  const q = userMessage.toLowerCase();
 
-  const lines =
-    burgers.length > 0
-      ? burgers.map((p) => {
-          const price = p.prices[0];
-          const usd = price ? `$${price.amount}` : '';
-          const ves = price?.amountVes ? ` / Bs ${price.amountVes.toLocaleString('es-VE')}` : '';
-          return `• ${p.name}: ${usd}${ves}`;
-        })
-      : catalog.products.slice(0, 5).map((p) => {
-          const price = p.prices[0];
-          return `• ${p.name}: $${price?.amount ?? '?'}`;
-        });
+  if (/d[oó]lar|bcv|tasa|bol[ií]var|bs\.?/i.test(q) && catalog.bcvRate) {
+    return `La tasa BCV hoy es *${catalog.bcvRate} Bs/USD*${catalog.bcvRateDate ? ` (${catalog.bcvRateDate})` : ''}. ¿Te ayudo con algo más del menú? 🍔`;
+  }
 
-  const payments = catalog.paymentMethods
-    .filter((m) => m.enabled)
-    .map((m) => m.label)
-    .join(', ');
+  if (/delivery|env[ií]o|domicilio|entrega/i.test(q)) {
+    return `El delivery cuesta *$${catalog.deliveryCharges}* 🛵. Puedes ver todo el menú aquí: ${storeUrl}`;
+  }
 
-  return [
-    '¡Hola! 👋 Gracias por escribir a *Codigo 10*.',
-    '',
-    'Sí, tenemos hamburguesas y más:',
-    ...lines,
-    '',
-    `🛵 Delivery: $${catalog.deliveryCharges}`,
-    payments ? `💳 Pagos: ${payments}` : '',
-    '',
-    `Pedidos en la web: ${storeUrl}`,
-  ]
-    .filter(Boolean)
-    .join('\n');
+  if (/precio|cuesta|cu[aá]nto|menu|menú|hamburguesa/i.test(q)) {
+    const sample = catalog.products.slice(0, 3).map((p) => {
+      const price = p.prices[0];
+      return `• ${p.name}: $${price?.amount ?? '?'}`;
+    });
+    return `${sample.join('\n')}\n\nMenú completo: ${storeUrl}`;
+  }
+
+  return `Gracias por escribir 😊 Estoy teniendo un pequeño delay con la IA. Mientras tanto, revisa el menú: ${storeUrl}\n\n¿En qué más te ayudo?`;
 }
