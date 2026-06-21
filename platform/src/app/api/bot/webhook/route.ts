@@ -9,10 +9,57 @@ import {
   getConversationTurn,
   replyForTurn,
 } from '@/lib/bot/conversation-flow';
+import { buildDedupeKey, processWebhookOnce } from '@/lib/bot/webhook-dedupe';
 import { buildWhatsAppAccessUrl, whatsAppChatIdToPhone } from '@/lib/quick-auth';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
+
+async function handleInboundMessage(inbound: {
+  chatId: string;
+  messageId: string;
+  body: string;
+  sessionId: string;
+}) {
+  const turn = await getConversationTurn(inbound.sessionId, inbound.chatId);
+  const scripted = replyForTurn(turn);
+
+  let reply: string;
+  let mode: 'welcome' | 'menu' | 'gemini' | 'fallback' = 'gemini';
+
+  if (scripted) {
+    reply = scripted;
+    mode = turn === 1 ? 'welcome' : 'menu';
+  } else {
+    const catalog = await buildBotCatalog();
+    const catalogContext = buildCatalogContext(catalog);
+    const customerPhone = whatsAppChatIdToPhone(inbound.chatId);
+    const quickAccessUrl = buildWhatsAppAccessUrl(customerPhone, '/');
+    const history = await fetchChatHistory(inbound.sessionId, inbound.chatId);
+    const contextWithCustomer = `${catalogContext}
+
+DATOS DEL CLIENTE:
+- Teléfono WhatsApp: ${customerPhone || 'no disponible'}
+- Acceso rápido web: ${quickAccessUrl}`;
+
+    try {
+      reply = await generateGeminiReply(contextWithCustomer, inbound.body, { history });
+      mode = 'gemini';
+    } catch (geminiError) {
+      console.error('[api/bot/webhook] Gemini:', geminiError);
+      reply = buildFallbackReply(catalog, inbound.body);
+      mode = 'fallback';
+    }
+  }
+
+  await sendOpenWAText({
+    chatId: inbound.chatId,
+    text: reply,
+    sessionId: inbound.sessionId,
+  });
+
+  return { mode, turn };
+}
 
 export async function POST(request: Request) {
   try {
@@ -34,44 +81,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, skipped: true });
     }
 
-    const turn = await getConversationTurn(inbound.sessionId, inbound.chatId);
-    const scripted = replyForTurn(turn);
+    const dedupeKey = buildDedupeKey(
+      inbound.sessionId,
+      inbound.messageId,
+      payload.idempotencyKey,
+    );
 
-    let reply: string;
-    let mode: 'welcome' | 'menu' | 'gemini' | 'fallback' = 'gemini';
+    const outcome = await processWebhookOnce(dedupeKey, () => handleInboundMessage(inbound));
 
-    if (scripted) {
-      reply = scripted;
-      mode = turn === 1 ? 'welcome' : 'menu';
-    } else {
-      const catalog = await buildBotCatalog();
-      const catalogContext = buildCatalogContext(catalog);
-      const customerPhone = whatsAppChatIdToPhone(inbound.chatId);
-      const quickAccessUrl = buildWhatsAppAccessUrl(customerPhone, '/');
-      const history = await fetchChatHistory(inbound.sessionId, inbound.chatId);
-      const contextWithCustomer = `${catalogContext}
-
-DATOS DEL CLIENTE:
-- Teléfono WhatsApp: ${customerPhone || 'no disponible'}
-- Acceso rápido web (sin registro manual): ${quickAccessUrl}`;
-
-      try {
-        reply = await generateGeminiReply(contextWithCustomer, inbound.body, { history });
-        mode = 'gemini';
-      } catch (geminiError) {
-        console.error('[api/bot/webhook] Gemini:', geminiError);
-        reply = buildFallbackReply(catalog, inbound.body);
-        mode = 'fallback';
-      }
+    if (outcome.status === 'duplicate') {
+      return NextResponse.json({ ok: true, skipped: true, reason: 'duplicate_delivery' });
     }
 
-    await sendOpenWAText({
-      chatId: inbound.chatId,
-      text: reply,
-      sessionId: inbound.sessionId,
-    });
-
-    return NextResponse.json({ ok: true, replied: true, mode, turn });
+    return NextResponse.json({ ok: true, replied: true, ...outcome.value });
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     console.error('[api/bot/webhook]', error);

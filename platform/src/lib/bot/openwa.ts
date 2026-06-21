@@ -4,6 +4,8 @@ export type OpenWAWebhookPayload = {
   event: string;
   timestamp: string;
   sessionId: string;
+  idempotencyKey?: string;
+  deliveryId?: string;
   data: {
     id?: string;
     chatId?: string;
