@@ -47,27 +47,17 @@ Si el cliente quiere pedir en la web, envíale ese link. Al abrirlo entra solo c
       reply = buildFallbackReply(catalog, inbound.body);
     }
 
-    try {
-      await sendOpenWAText({
-        chatId: inbound.chatId,
-        text: reply,
-        quotedMessageId: inbound.messageId,
-        sessionId: inbound.sessionId,
-      });
-    } catch (sendError) {
-      // WhatsApp @lid: citar el mensaje suele fallar (400) — enviar sin cita
-      console.warn('[api/bot/webhook] send without quote:', sendError);
-      await sendOpenWAText({
-        chatId: inbound.chatId,
-        text: reply,
-        sessionId: inbound.sessionId,
-      });
-    }
+    await sendOpenWAText({
+      chatId: inbound.chatId,
+      text: reply,
+      sessionId: inbound.sessionId,
+    });
 
     return NextResponse.json({ ok: true, replied: true });
   } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
     console.error('[api/bot/webhook]', error);
-    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
+    return NextResponse.json({ error: 'Webhook processing failed', detail }, { status: 500 });
   }
 }
 
