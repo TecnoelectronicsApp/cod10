@@ -195,13 +195,35 @@ export async function fetchStoreConfigFromCloudinary() {
 }
 
 export async function uploadStoreConfigToCloudinary(config) {
-  const full = config.multiCurrency
+  let full = config.multiCurrency
     ? config
     : buildFullStoreConfig(
         config.paymentMethods
           ? config
           : { paymentMethods: config.paymentMethods }
       );
+
+  // Nunca borrar whatsappBot al subir pagos/multimoneda
+  if (!full.whatsappBot || !full.whatsappBot.openwaBaseUrl) {
+    try {
+      const cloud = await fetchStoreConfigFromCloudinary();
+      if (cloud && cloud.whatsappBot) {
+        full = Object.assign({}, full, {
+          whatsappBot: Object.assign(
+            {},
+            cloud.whatsappBot,
+            full.whatsappBot || {}
+          ),
+        });
+      }
+    } catch (e) {
+      console.warn(
+        "uploadStoreConfig: no se pudo preservar whatsappBot",
+        e.message
+      );
+    }
+  }
+
   const formData = new FormData();
   const blob = new Blob([JSON.stringify(full, null, 2)], {
     type: "application/json",

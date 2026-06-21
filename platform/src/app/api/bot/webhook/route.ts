@@ -47,12 +47,22 @@ Si el cliente quiere pedir en la web, envíale ese link. Al abrirlo entra solo c
       reply = buildFallbackReply(catalog, inbound.body);
     }
 
-    await sendOpenWAText({
-      chatId: inbound.chatId,
-      text: reply,
-      quotedMessageId: inbound.messageId,
-      sessionId: inbound.sessionId,
-    });
+    try {
+      await sendOpenWAText({
+        chatId: inbound.chatId,
+        text: reply,
+        quotedMessageId: inbound.messageId,
+        sessionId: inbound.sessionId,
+      });
+    } catch (sendError) {
+      // WhatsApp @lid: citar el mensaje suele fallar (400) — enviar sin cita
+      console.warn('[api/bot/webhook] send without quote:', sendError);
+      await sendOpenWAText({
+        chatId: inbound.chatId,
+        text: reply,
+        sessionId: inbound.sessionId,
+      });
+    }
 
     return NextResponse.json({ ok: true, replied: true });
   } catch (error) {
