@@ -3,6 +3,7 @@ import {
   getMultiCurrencyConfig,
   defaultMultiCurrencyConfig,
 } from "./multiCurrency";
+import { DEFAULT_WHATSAPP_BOT_PROMPT } from "./whatsappBotDefaults";
 
 export const PAYMENT_METHODS_STORAGE_KEY = "cod10-payment-methods";
 
@@ -133,8 +134,12 @@ export function buildFullStoreConfig(
     whatsappBot = {
       enabled: true,
       geminiModel: "gemini-2.0-flash",
-      systemPrompt: "",
+      systemPrompt: DEFAULT_WHATSAPP_BOT_PROMPT,
     };
+  } else if (!whatsappBot.systemPrompt?.trim()) {
+    whatsappBot = Object.assign({}, whatsappBot, {
+      systemPrompt: DEFAULT_WHATSAPP_BOT_PROMPT,
+    });
   }
 
   return {

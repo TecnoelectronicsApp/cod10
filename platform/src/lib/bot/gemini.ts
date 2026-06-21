@@ -1,6 +1,6 @@
 import { getBotRuntimeConfig } from './bot-config';
-import { loadSystemPrompt } from './system-prompt';
 import type { ChatMessage } from './conversation-flow';
+import { buildMandatorySystemInstruction, resolveConfiguredSystemPrompt } from './system-prompt';
 
 const FALLBACK_MODELS = ['gemini-2.0-flash-lite', 'gemini-1.5-flash'];
 
@@ -12,8 +12,8 @@ export async function generateGeminiReply(
   catalogContext: string,
   userMessage: string,
   options?: {
-    systemPrompt?: string;
     history?: ChatMessage[];
+    customerBlock?: string;
   },
 ): Promise<string> {
   const runtime = await getBotRuntimeConfig();
@@ -23,9 +23,19 @@ export async function generateGeminiReply(
     throw new Error('Gemini API key not configured (admin → Bot WhatsApp o GEMINI_API_KEY)');
   }
 
-  const storeUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://cod10.vercel.app';
-  const basePrompt = options?.systemPrompt || runtime.systemPrompt || loadSystemPrompt();
-  const fullSystem = `${basePrompt}\n\nTienda web: ${storeUrl}\n\n${catalogContext}`;
+  const { prompt: configuredPrompt, source } = resolveConfiguredSystemPrompt(runtime.systemPrompt);
+  if (source === 'default') {
+    console.warn('[bot/gemini] systemPrompt no configurado en admin — usando prompt mínimo');
+  }
+
+  const storeUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://cod10.vercel.app').replace(/\/$/, '');
+  const customerBlock = options?.customerBlock?.trim() || '';
+  const fullSystem = buildMandatorySystemInstruction(
+    configuredPrompt,
+    storeUrl,
+    catalogContext,
+    customerBlock,
+  );
 
   const models = [runtime.geminiModel, ...FALLBACK_MODELS].filter(
     (m, i, arr) => m && arr.indexOf(m) === i,
@@ -47,7 +57,7 @@ export async function generateGeminiReply(
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: fullSystem }] },
             contents,
-            generationConfig: { temperature: 0.85, maxOutputTokens: 512 },
+            generationConfig: { temperature: 0.7, maxOutputTokens: 512 },
           }),
           signal: controller.signal,
         });

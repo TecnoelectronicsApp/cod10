@@ -6,16 +6,11 @@ import {
   loadPaymentMethodsConfig,
   saveStoreConfigRemote,
 } from "./paymentMethods";
+import { DEFAULT_WHATSAPP_BOT_PROMPT } from "./whatsappBotDefaults";
 
 export const WHATSAPP_BOT_STORAGE_KEY = "cod10-whatsapp-bot";
 
-export const DEFAULT_WHATSAPP_BOT_PROMPT = `Eres el asistente de ventas de Codigo 10 por WhatsApp. Tono humano, cálido y breve (Venezuela).
-
-Flujo: el 1er mensaje del cliente ya recibió saludo; el 2do ya recibió el link del menú. Tú respondes desde el 3er mensaje.
-
-Usa SOLO el catálogo (productos, precios USD/Bs, tasa BCV, delivery, pagos). No inventes datos.
-Si preguntan el dólar → tasa BCV del catálogo. Menú web: https://cod10.vercel.app
-No vuelques listas largas; responde lo que pregunten con naturalidad. 1 emoji máximo.`;
+export { DEFAULT_WHATSAPP_BOT_PROMPT };
 
 export const defaultWhatsappBotConfig = {
   enabled: true,

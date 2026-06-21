@@ -7,7 +7,9 @@ import { buildFallbackReply } from '@/lib/bot/fallback-reply';
 import {
   fetchChatHistory,
   getConversationTurn,
-  replyForTurn,
+  replyForFirstTurn,
+  wantsMenuLink,
+  MENU_LINK_REPLY,
 } from '@/lib/bot/conversation-flow';
 import { buildDedupeKey, processWebhookOnce } from '@/lib/bot/webhook-dedupe';
 import { buildWhatsAppAccessUrl, whatsAppChatIdToPhone } from '@/lib/quick-auth';
@@ -22,28 +24,31 @@ async function handleInboundMessage(inbound: {
   sessionId: string;
 }) {
   const turn = await getConversationTurn(inbound.sessionId, inbound.chatId);
-  const scripted = replyForTurn(turn);
 
   let reply: string;
   let mode: 'welcome' | 'menu' | 'gemini' | 'fallback' = 'gemini';
 
-  if (scripted) {
-    reply = scripted;
-    mode = turn === 1 ? 'welcome' : 'menu';
+  if (turn === 1) {
+    reply = replyForFirstTurn();
+    mode = 'welcome';
+  } else if (wantsMenuLink(inbound.body)) {
+    reply = MENU_LINK_REPLY;
+    mode = 'menu';
   } else {
     const catalog = await buildBotCatalog();
     const catalogContext = buildCatalogContext(catalog);
     const customerPhone = whatsAppChatIdToPhone(inbound.chatId);
     const quickAccessUrl = buildWhatsAppAccessUrl(customerPhone, '/');
     const history = await fetchChatHistory(inbound.sessionId, inbound.chatId);
-    const contextWithCustomer = `${catalogContext}
-
-DATOS DEL CLIENTE:
+    const customerBlock = `DATOS DEL CLIENTE:
 - Teléfono WhatsApp: ${customerPhone || 'no disponible'}
 - Acceso rápido web: ${quickAccessUrl}`;
 
     try {
-      reply = await generateGeminiReply(contextWithCustomer, inbound.body, { history });
+      reply = await generateGeminiReply(catalogContext, inbound.body, {
+        history,
+        customerBlock,
+      });
       mode = 'gemini';
     } catch (geminiError) {
       console.error('[api/bot/webhook] Gemini:', geminiError);

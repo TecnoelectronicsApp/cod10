@@ -5,13 +5,13 @@ const STORE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://cod10.vercel.app
 export const WELCOME_MESSAGE =
   '¡Hola! 👋 Gracias por escribir a *Codigo 10*.\n¿Qué se te antoja hoy?';
 
-export const MENU_MESSAGE = `Aquí tienes nuestro menú completo para que elijas con calma 🍔\n\n${STORE_URL}\n\nCuéntame qué te provoca o pregúntame lo que necesites — precios, delivery, pagos, lo que sea 😊`;
+export const MENU_LINK_REPLY = `Aquí tienes nuestro menú 🍔\n\n${STORE_URL}`;
 
-/** Reinicia saludo/menú si pasaron 4+ horas sin mensajes en el chat */
+/** Reinicia saludo si pasaron 4+ horas sin mensajes en el chat */
 const SESSION_GAP_SEC = 4 * 60 * 60;
 
-/** 1 = primer mensaje del cliente, 2 = segundo, 3+ = conversación con Gemini */
-export type ConversationTurn = 1 | 2 | 3;
+/** true = primer mensaje del cliente en la ventana actual */
+export type ConversationTurn = 1 | 'ongoing';
 
 export type ChatMessage = { body: string; fromCustomer: boolean };
 
@@ -22,15 +22,19 @@ type MessageRow = {
   timestamp?: number;
 };
 
+const MENU_REQUEST =
+  /\b(men[uú]|carta|cat[aá]logo|productos|link|enlace|url|p[aá]gina|sitio|web|ordenar|pedir\s+online|ver\s+(el\s+)?men[uú]|qu[eé]\s+tienen|que\s+tienen|muestr(a|ame|ar)\s+(el\s+)?men[uú]|env[ií]a(me)?\s+(el\s+)?(link|men[uú]))/i;
+
+export function wantsMenuLink(text: string): boolean {
+  return MENU_REQUEST.test(text.trim());
+}
+
 export async function getConversationTurn(
   sessionId: string,
   chatId: string,
 ): Promise<ConversationTurn> {
   const windowIncoming = await fetchIncomingInCurrentWindow(sessionId, chatId);
-  const count = windowIncoming.length;
-  if (count <= 1) return 1;
-  if (count === 2) return 2;
-  return 3;
+  return windowIncoming.length <= 1 ? 1 : 'ongoing';
 }
 
 export async function fetchChatHistory(
@@ -47,10 +51,8 @@ export async function fetchChatHistory(
     }));
 }
 
-export function replyForTurn(turn: ConversationTurn): string | null {
-  if (turn === 1) return WELCOME_MESSAGE;
-  if (turn === 2) return MENU_MESSAGE;
-  return null;
+export function replyForFirstTurn(): string {
+  return WELCOME_MESSAGE;
 }
 
 async function fetchIncomingInCurrentWindow(

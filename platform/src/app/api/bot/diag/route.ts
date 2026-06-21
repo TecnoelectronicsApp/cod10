@@ -3,6 +3,7 @@ import { getBotRuntimeConfig, fetchWhatsappBotConfigFromCloud } from '@/lib/bot/
 import { buildBotCatalog } from '@/lib/bot/catalog';
 import { generateGeminiReply } from '@/lib/bot/gemini';
 import { buildCatalogContext } from '@/lib/bot/catalog';
+import { resolveConfiguredSystemPrompt } from '@/lib/bot/system-prompt';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -108,9 +109,9 @@ export async function GET() {
   const checks: Record<string, Check | Record<string, Check>> = {
     botEnabled: { ok: runtime.enabled, detail: runtime.enabled ? 'Bot activado' : 'Bot desactivado en config' },
     cloudinary: {
-      ok: !!cloud?.openwaBaseUrl && !!cloud?.geminiApiKey,
+      ok: !!cloud?.openwaBaseUrl && !!cloud?.geminiApiKey && !!cloud?.systemPrompt?.trim(),
       detail: cloud
-        ? `Cloudinary: URL=${!!cloud.openwaBaseUrl}, Gemini=${!!cloud.geminiApiKey}, Session=${cloud.openwaSessionId?.slice(0, 8) || '—'}…`
+        ? `Cloudinary: URL=${!!cloud.openwaBaseUrl}, Gemini=${!!cloud.geminiApiKey}, Prompt=${!!cloud.systemPrompt?.trim()}, Session=${cloud.openwaSessionId?.slice(0, 8) || '—'}…`
         : 'Sin whatsappBot en Cloudinary — guarda en admin',
     },
     catalog: {
@@ -121,6 +122,15 @@ export async function GET() {
       ok: true,
       detail: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://cod10.vercel.app'}/api/bot/webhook`,
     },
+  };
+
+  const { prompt, source } = resolveConfiguredSystemPrompt(runtime.systemPrompt);
+  checks.systemPrompt = {
+    ok: source === 'admin',
+    detail:
+      source === 'admin'
+        ? `Prompt de admin (${prompt.length} caracteres) — reglas obligatorias`
+        : `Sin prompt en admin (${source}) — configura en Bot WhatsApp y guarda`,
   };
 
   if (runtime.openwaBaseUrl && runtime.openwaApiKey) {
