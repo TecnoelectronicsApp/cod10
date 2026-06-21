@@ -7,7 +7,7 @@ import { buildFallbackReply } from '@/lib/bot/fallback-reply';
 import {
   fetchChatHistory,
   getConversationTurn,
-  replyForFirstTurn,
+  replyForTurn,
   wantsMenuLink,
   MENU_LINK_REPLY,
 } from '@/lib/bot/conversation-flow';
@@ -24,13 +24,14 @@ async function handleInboundMessage(inbound: {
   sessionId: string;
 }) {
   const turn = await getConversationTurn(inbound.sessionId, inbound.chatId);
+  const scripted = replyForTurn(turn);
 
   let reply: string;
   let mode: 'welcome' | 'menu' | 'gemini' | 'fallback' = 'gemini';
 
-  if (turn === 1) {
-    reply = replyForFirstTurn();
-    mode = 'welcome';
+  if (scripted) {
+    reply = scripted;
+    mode = turn === 1 ? 'welcome' : 'menu';
   } else if (wantsMenuLink(inbound.body)) {
     reply = MENU_LINK_REPLY;
     mode = 'menu';

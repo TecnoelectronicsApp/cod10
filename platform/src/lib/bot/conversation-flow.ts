@@ -5,13 +5,15 @@ const STORE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://cod10.vercel.app
 export const WELCOME_MESSAGE =
   '¡Hola! 👋 Gracias por escribir a *Codigo 10*.\n¿Qué se te antoja hoy?';
 
+export const MENU_MESSAGE = `Aquí tienes nuestro menú completo para que elijas con calma 🍔\n\n${STORE_URL}\n\nCuéntame qué te provoca o pregúntame lo que necesites — precios, delivery, pagos, lo que sea 😊`;
+
 export const MENU_LINK_REPLY = `Aquí tienes nuestro menú 🍔\n\n${STORE_URL}`;
 
-/** Reinicia saludo si pasaron 4+ horas sin mensajes en el chat */
+/** Reinicia flujo si pasaron 4+ horas sin mensajes en el chat */
 const SESSION_GAP_SEC = 4 * 60 * 60;
 
-/** true = primer mensaje del cliente en la ventana actual */
-export type ConversationTurn = 1 | 'ongoing';
+/** 1 = saludo, 2 = menú automático, 3+ = Gemini (menú solo si lo piden) */
+export type ConversationTurn = 1 | 2 | 3;
 
 export type ChatMessage = { body: string; fromCustomer: boolean };
 
@@ -34,7 +36,16 @@ export async function getConversationTurn(
   chatId: string,
 ): Promise<ConversationTurn> {
   const windowIncoming = await fetchIncomingInCurrentWindow(sessionId, chatId);
-  return windowIncoming.length <= 1 ? 1 : 'ongoing';
+  const count = windowIncoming.length;
+  if (count <= 1) return 1;
+  if (count === 2) return 2;
+  return 3;
+}
+
+export function replyForTurn(turn: ConversationTurn): string | null {
+  if (turn === 1) return WELCOME_MESSAGE;
+  if (turn === 2) return MENU_MESSAGE;
+  return null;
 }
 
 export async function fetchChatHistory(
@@ -49,10 +60,6 @@ export async function fetchChatHistory(
       body: m.body.trim(),
       fromCustomer: m.direction === 'incoming',
     }));
-}
-
-export function replyForFirstTurn(): string {
-  return WELCOME_MESSAGE;
 }
 
 async function fetchIncomingInCurrentWindow(
